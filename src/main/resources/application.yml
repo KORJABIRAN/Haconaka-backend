@@ -19,7 +19,7 @@ server:
 
 logging:
   level:
-    com.haconaka.demo: WARN
+    com.haconaka.demo: INFO
     org.hibernate.SQL: WARN
 
 youtube:
