@@ -65,3 +65,24 @@
 2026-01-14T05:15:34.301+09:00  INFO 15012 --- [haconaka_new] [restartedMain] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
 2026-01-14T05:15:34.420+09:00  INFO 15012 --- [haconaka_new] [restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
 2026-01-14T05:15:34.444+09:00  INFO 15012 --- [haconaka_new] [restartedMain] c.haconaka.demo.HaconakaNewApplication   : Started HaconakaNewApplication in 7.142 seconds (process running for 7.612)
+2026-01-14T05:18:05.038+09:00  INFO 15012 --- [haconaka_new] [livestream-monitor-1] c.h.demo.service.YoutubePubSubService    : ==================== Log start : update livestreaming information
+2026-01-14T05:18:05.040+09:00  INFO 15012 --- [haconaka_new] [livestream-monitor-1] c.h.demo.service.YoutubePubSubService    : 2026/01/14 05:18:05 - Start update livestreaming information
+2026-01-14T05:18:05.396+09:00  INFO 15012 --- [haconaka_new] [livestream-monitor-1] c.h.demo.service.YoutubePubSubService    : total : 0
+2026-01-14T05:18:05.396+09:00  INFO 15012 --- [haconaka_new] [livestream-monitor-1] c.h.demo.service.YoutubePubSubService    : videoIDs is empty. finish Processing.
+2026-01-14T05:18:05.396+09:00  INFO 15012 --- [haconaka_new] [livestream-monitor-1] c.h.demo.service.YoutubePubSubService    : 2026/01/14 05:18:05 - finished update livestreaming information
+2026-01-14T05:18:05.396+09:00  INFO 15012 --- [haconaka_new] [livestream-monitor-1] c.h.demo.service.YoutubePubSubService    : ==================== Log End : update livestreaming information
+2026-01-14T05:18:05.396+09:00  INFO 15012 --- [haconaka_new] [livestream-monitor-1] c.h.demo.service.YoutubePubSubService    : 데이터베이스가 비었습니다. 지금부터 10분을 세겠습니다.
+2026-01-14T05:21:05.011+09:00  INFO 15012 --- [haconaka_new] [livestream-monitor-1] c.h.demo.service.YoutubePubSubService    : ==================== Log start : update livestreaming information
+2026-01-14T05:21:05.011+09:00  INFO 15012 --- [haconaka_new] [livestream-monitor-1] c.h.demo.service.YoutubePubSubService    : 2026/01/14 05:21:05 - Start update livestreaming information
+2026-01-14T05:21:05.257+09:00  INFO 15012 --- [haconaka_new] [livestream-monitor-1] c.h.demo.service.YoutubePubSubService    : total : 0
+2026-01-14T05:21:05.257+09:00  INFO 15012 --- [haconaka_new] [livestream-monitor-1] c.h.demo.service.YoutubePubSubService    : videoIDs is empty. finish Processing.
+2026-01-14T05:21:05.257+09:00  INFO 15012 --- [haconaka_new] [livestream-monitor-1] c.h.demo.service.YoutubePubSubService    : 2026/01/14 05:21:05 - finished update livestreaming information
+2026-01-14T05:21:05.257+09:00  INFO 15012 --- [haconaka_new] [livestream-monitor-1] c.h.demo.service.YoutubePubSubService    : ==================== Log End : update livestreaming information
+2026-01-14T05:21:05.257+09:00  INFO 15012 --- [haconaka_new] [livestream-monitor-1] c.h.demo.service.YoutubePubSubService    : 아직 10분이 지나지 않았습니다.
+2026-01-14T05:24:05.026+09:00  INFO 15012 --- [haconaka_new] [livestream-monitor-1] c.h.demo.service.YoutubePubSubService    : ==================== Log start : update livestreaming information
+2026-01-14T05:24:05.026+09:00  INFO 15012 --- [haconaka_new] [livestream-monitor-1] c.h.demo.service.YoutubePubSubService    : 2026/01/14 05:24:05 - Start update livestreaming information
+2026-01-14T05:24:05.272+09:00  INFO 15012 --- [haconaka_new] [livestream-monitor-1] c.h.demo.service.YoutubePubSubService    : total : 0
+2026-01-14T05:24:05.272+09:00  INFO 15012 --- [haconaka_new] [livestream-monitor-1] c.h.demo.service.YoutubePubSubService    : videoIDs is empty. finish Processing.
+2026-01-14T05:24:05.272+09:00  INFO 15012 --- [haconaka_new] [livestream-monitor-1] c.h.demo.service.YoutubePubSubService    : 2026/01/14 05:24:05 - finished update livestreaming information
+2026-01-14T05:24:05.272+09:00  INFO 15012 --- [haconaka_new] [livestream-monitor-1] c.h.demo.service.YoutubePubSubService    : ==================== Log End : update livestreaming information
+2026-01-14T05:24:05.275+09:00  INFO 15012 --- [haconaka_new] [livestream-monitor-1] c.h.demo.service.YoutubePubSubService    : 아직 10분이 지나지 않았습니다.
