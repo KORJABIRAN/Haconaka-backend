@@ -24,6 +24,7 @@ public class YoutubeCallbackController {
     @PostMapping("/callback")
     public void handleNotification(@RequestBody String body) {
         log.info("Controller handleNotification called");
+        youtubePubSubService.restartSchedule();
         youtubePubSubService.handleNotification(body);
     }
 }

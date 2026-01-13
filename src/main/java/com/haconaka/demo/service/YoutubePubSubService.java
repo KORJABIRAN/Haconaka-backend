@@ -11,11 +11,9 @@ import com.haconaka.demo.repository.HacoAddressRepository;
 import com.haconaka.demo.repository.HacoCurrentLivestreamRepository;
 //import com.haconaka.demo.repository.HacoCurrentLivestreamTestRepository;
 //import com.haconaka.demo.config.YoutubeConfig;
-import com.haconaka.demo.repository.HacoMemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -24,14 +22,12 @@ import org.xml.sax.InputSource;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.IOException;
 import java.io.StringReader;
-import java.sql.Time;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @EnableScheduling
@@ -44,6 +40,10 @@ public class YoutubePubSubService {
     private final YouTube youTube;
     @Value("${youtube.api-key}")
     private String youtubeApiKey;
+
+    private volatile boolean isDatabaseEmpty = false;
+    private LocalDateTime startEmpty = null;
+    private volatile boolean isScheduleDisabled = false;
 
     // 시간 포맷팅 함수
     public String getCurrentDateTime() {
@@ -58,11 +58,9 @@ public class YoutubePubSubService {
             for (var dto : entries) {
                 String channelId = dto.getChannelId();
                 String videoId = dto.getVideoId();
-                System.out.println("==================== Log Start : new request from youtube PubSub");
-                System.out.println(getCurrentDateTime() + " - A new request!");
-                System.out.print("channelID : " + channelId);
-                System.out.print(" / videoID : " + videoId);
-                System.out.print(" / title : " + dto.getTitle() + "\n");
+                log.info("==================== Log Start : new request from youtube PubSub");
+                log.info(getCurrentDateTime() + " - A new request!");
+                log.info("channelID : " + channelId + " / videoID : " + videoId + " / title : " + dto.getTitle());
 
                 List<String> videoIds = new ArrayList<>();
                 videoIds.add(videoId);
@@ -81,8 +79,8 @@ public class YoutubePubSubService {
                         .memberPk(memberPk)
                         .address(videoId)
                         .build());
-                System.out.println(getCurrentDateTime() + " - succeed save.");
-                System.out.println("==================== Log End : new request from youtube PubSub");
+                log.info(getCurrentDateTime() + " - succeed save.");
+                log.info("==================== Log End : new request from youtube PubSub");
             }
         } catch (Exception e) {
             log.error("Failed to handle notification");
@@ -143,9 +141,9 @@ public class YoutubePubSubService {
 
 
     // 현재라이브 DB 전제초회 후 Live 상태 아니면 삭제하기
-    public void refreshAllCurrent() {
-        System.out.println("==================== Log start : update livestreaming information");
-        System.out.println(getCurrentDateTime() + " - Start update livestreaming information");
+    public int refreshAllCurrent() {
+        log.info("==================== Log start : update livestreaming information");
+        log.info(getCurrentDateTime() + " - Start update livestreaming information");
         List<HacoCurrentLivestream> clt = currentRepo.findAll();
         List<String> videoIds = new ArrayList<>();
         for (HacoCurrentLivestream h : clt) {
@@ -155,16 +153,18 @@ public class YoutubePubSubService {
         // 루프 돌리며 취득한 videoIds로 youtube API 실행 (메소드로 분리했음)
         getStatusByVideoId(videoIds, "refreshAllCurrent");
 
-        System.out.println(getCurrentDateTime() + " - finished update livestreaming information");
-        System.out.println("==================== Log End : update livestreaming information");
+        log.info(getCurrentDateTime() + " - finished update livestreaming information");
+        log.info("==================== Log End : update livestreaming information");
+
+        return clt.size();
     }
 
     // videoId로 api호출 후 live가 아니면 삭제 or 미등록 처리
     public boolean getStatusByVideoId(List<String> videoIds, String whoAreYou) {
         try {
-            System.out.println("total : " + videoIds.size());
+            log.info("total : " + videoIds.size());
             if (videoIds.isEmpty()) {
-                System.out.println("videoIDs is empty. finish Processing.");
+                log.info("videoIDs is empty. finish Processing.");
                 return false;
             }
             YouTube.Videos.List req = youTube.videos().list(List.of("snippet", "status", "liveStreamingDetails"));
@@ -177,20 +177,20 @@ public class YoutubePubSubService {
             for (Video item : items) {
                 List<HacoCurrentLivestream> ids = currentRepo.findByAddress(item.getId());
                 status = item.getSnippet().getLiveBroadcastContent();
+                String tempLog = " / status : " + status +
+                                 " / ChannelID : " + item.getSnippet().getChannelTitle() +
+                                 " / videoId : " + item.getId();
                 if (whoAreYou.equals("refreshAllCurrent")) {
                     if (!status.equals("live")) {
                         currentRepo.delete(ids.get(0));
-                        System.out.print("result : delete");
+                        log.info("result : delete" + tempLog);
                     } else {
-                        System.out.print("result : keeping");
+                        log.info("result : keeping" + tempLog);
                     }
                 }
-                System.out.print(" / status : " + status);
-                System.out.print(" / ChannelID : " + item.getSnippet().getChannelTitle());
-                System.out.print(" / videoId : " + item.getId() + "\n");
             }
             if (whoAreYou.equals("handleNotification") && !status.equals("live")) {
-                System.out.println("status is not live. finish Processing force.");
+                log.info("status is not live. finish Processing force.");
                 return false;
             }
         } catch (Exception e) {
@@ -199,8 +199,47 @@ public class YoutubePubSubService {
         return true;
     }
 
-    @Scheduled(cron = "5 0/3 * * * *") // 60000 밀리초 = 1분
+    // 이 메서드 한방이면 스케쥴 살리가 OK
+    public void restartSchedule() {
+        isScheduleDisabled = false;
+        isDatabaseEmpty = false;
+        startEmpty = null;
+        log.info("어떤 형태로든 변화를 감지하여 스케쥴을 다시 기동합니다.");
+    }
+
+    @Scheduled(cron = "5 0/3 * * * *")
     public void scheduledRefresh() {
-        refreshAllCurrent();
+        // 너 10분 넘었어? 돌아가.
+        if (isScheduleDisabled) {
+            log.info(getCurrentDateTime() + "테스트용. 나중에 삭제할 로그입니다. 10분 초과하였으므로 스케쥴을 실행하지 않습니다.");
+            return;
+        }
+
+        // 스케쥴링수행 및 DB사이즈값 리턴
+        int valueSize = refreshAllCurrent();
+
+        LocalDateTime now = LocalDateTime.now();
+
+        // 조회해 보니 total == 0 이네?
+        if (valueSize == 0) {
+            // 심지어 얘가 DB에 값이 있다고 착각하고있네?
+            if (!isDatabaseEmpty) {
+                isDatabaseEmpty = true;
+                startEmpty = now;
+                log.info("데이터베이스가 비었습니다. 지금부터 10분을 세겠습니다.");
+            } else if (startEmpty != null) {
+                // DB가 0인거 이미 알고있었는데? 몇시에 0이었는지도 아는데? 그러니까 몇분 지났는지 시간비교해.
+                Duration duration = Duration.between(startEmpty, now);
+                if (duration.toMinutes() >= 10) {
+                    //10분 넘었네?? 다음 부터는 멈춰!
+                    isScheduleDisabled = true;
+                    log.info("10분이 초과하였으므로 스케쥴링을 중지합니다.");
+                } else {
+                    log.info("아직 10분이 지나지 않았습니다.");
+                }
+            }
+        } else { // DB에 값이 0이었지만 새로 생겼어. 스케쥴링 살려내!
+            restartSchedule();
+        }
     }
 }
