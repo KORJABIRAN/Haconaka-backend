@@ -32,6 +32,15 @@ public class YoutubeSubscriptionService {
     private static final String HUB_URL = "https://pubsubhubbub.appspot.com/subscribe";
 
     @Scheduled(initialDelay = 30 * 1000)
+    public void scheduledTask() {
+        subscribeAllYtChannels();
+    }
+
+    @Scheduled(cron = "0 5 0 * * *")
+    public void scheduledTask2() {
+        subscribeAllYtChannels();
+    }
+
     public void subscribeAllYtChannels() {
         List<HacoAddress> channels = addressRepository.findByCategory("YchannelID");
         log.info("Found {} YchannelID rows", channels.size());
