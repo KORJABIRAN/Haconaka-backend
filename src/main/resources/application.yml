@@ -1,9 +1,9 @@
 spring:
   datasource:
-    url: jdbc:mariadb://haconaka.com:3306/ds6951
+    url: jdbc:postgresql://dpg-d5qj2kcoud1c73e7m2q0-a.oregon-postgres.render.com/haconaka
     username: ds6951
-    password: soldesk802!!
-    driver-class-name: org.mariadb.jdbc.Driver
+    password: 5NTAVOTYcLGwX4vsbByXkpsQPIraYEzv
+    driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
@@ -11,8 +11,9 @@ spring:
     show-sql: false
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.MariaDBDialect
+        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+
 
 server:
   port: 8080
@@ -23,5 +24,6 @@ logging:
     org.hibernate.SQL: WARN
 
 youtube:
-  callback-base-url: "https://neologically-caulocarpous-elenora.ngrok-free.dev"
+#  callback-base-url: "https://neologically-caulocarpous-elenora.ngrok-free.dev"
+  callback-base-url: "https://haconaka-backend-java.onrender.com"
   api-key: "AIzaSyDaJwlJQy--MSHz_DRBAcvTi2tc4Cg78CY"
