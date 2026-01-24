@@ -6,7 +6,7 @@ COPY . .
 RUN ./gradlew clean build -x test --no-daemon
 
 # 2단계: 실행 환경 (가벼운 JDK 이미지를 사용)
-FROM openjdk:17-jdk
+FROM openjdk:17-slim-bullseye
 WORKDIR /app
 
 # 빌드 단계에서 만들어진 JAR 파일을 복사해옴
