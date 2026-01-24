@@ -3,6 +3,7 @@ FROM gradle:8.5-jdk17 AS builder
 WORKDIR /app
 COPY . .
 # 테스트는 건너뛰고 빌드만 수행 (배포 속도 향상)
+RUN chmod +x gradlew
 RUN ./gradlew clean build -x test --no-daemon
 
 # 2단계: 실행 환경 (Eclipse Temurin 이미지를 사용 - 매우 안정적)
