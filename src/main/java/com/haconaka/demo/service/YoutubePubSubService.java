@@ -211,7 +211,7 @@ public class YoutubePubSubService {
     public void scheduledRefresh() {
         // 너 10분 넘었어? 돌아가.
         if (isScheduleDisabled) {
-            log.info(getCurrentDateTime() + "테스트용. 나중에 삭제할 로그입니다. 10분 초과하였으므로 스케쥴을 실행하지 않습니다.");
+//            log.info(getCurrentDateTime() + "테스트용. 나중에 삭제할 로그입니다. 10분 초과하였으므로 스케쥴을 실행하지 않습니다.");
             return;
         }
 

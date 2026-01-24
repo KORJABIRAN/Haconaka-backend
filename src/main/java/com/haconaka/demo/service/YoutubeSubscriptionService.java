@@ -2,10 +2,13 @@ package com.haconaka.demo.service;
 
 import com.haconaka.demo.entity.HacoAddress;
 import com.haconaka.demo.repository.HacoAddressRepository;
+import jakarta.annotation.PostConstruct;
+import jakarta.persistence.Entity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -16,6 +19,7 @@ import java.util.List;
 
 @Slf4j
 @Service
+@EnableScheduling
 @RequiredArgsConstructor
 public class YoutubeSubscriptionService {
 
@@ -27,6 +31,7 @@ public class YoutubeSubscriptionService {
 
     private static final String HUB_URL = "https://pubsubhubbub.appspot.com/subscribe";
 
+    @Scheduled(initialDelay = 30 * 1000)
     public void subscribeAllYtChannels() {
         List<HacoAddress> channels = addressRepository.findByCategory("YchannelID");
         log.info("Found {} YchannelID rows", channels.size());
