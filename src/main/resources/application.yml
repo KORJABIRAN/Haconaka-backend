@@ -1,6 +1,7 @@
 spring:
   datasource:
-    url: jdbc:postgresql://dpg-d5qj2kcoud1c73e7m2q0-a.oregon-postgres.render.com/haconaka
+#    url: jdbc:postgresql://dpg-d5qj2kcoud1c73e7m2q0-a.oregon-postgres.render.com/haconaka
+    url: jdbc:postgresql://dpg-d5qj2kcoud1c73e7m2q0-a/haconaka
     username: ds6951
     password: 5NTAVOTYcLGwX4vsbByXkpsQPIraYEzv
     driver-class-name: org.postgresql.Driver
