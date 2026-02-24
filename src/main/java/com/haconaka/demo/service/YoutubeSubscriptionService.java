@@ -2,14 +2,10 @@ package com.haconaka.demo.service;
 
 import com.haconaka.demo.entity.HacoAddress;
 import com.haconaka.demo.repository.HacoAddressRepository;
-import jakarta.annotation.PostConstruct;
-import jakarta.persistence.Entity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
-import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -19,7 +15,6 @@ import java.util.List;
 
 @Slf4j
 @Service
-@EnableScheduling
 @RequiredArgsConstructor
 public class YoutubeSubscriptionService {
 
@@ -30,16 +25,6 @@ public class YoutubeSubscriptionService {
     private String callbackBaseUrl;
 
     private static final String HUB_URL = "https://pubsubhubbub.appspot.com/subscribe";
-
-    @Scheduled(initialDelay = 30 * 1000)
-    public void scheduledTask() {
-        subscribeAllYtChannels();
-    }
-
-    @Scheduled(cron = "0 5 0 * * *")
-    public void scheduledTask2() {
-        subscribeAllYtChannels();
-    }
 
     public void subscribeAllYtChannels() {
         List<HacoAddress> channels = addressRepository.findByCategory("YchannelID");
@@ -59,6 +44,7 @@ public class YoutubeSubscriptionService {
         }
     }
 
+    // 구독 갱신 요청 매서드
     private void subscribeChannel(String channelId) {
         String topic = "https://www.youtube.com/xml/feeds/videos.xml?channel_id="
                 + URLEncoder.encode(channelId, StandardCharsets.UTF_8);
