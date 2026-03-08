@@ -1,8 +1,11 @@
 package com.haconaka.demo.config;
 
+import org.springframework.stereotype.Service;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+@Service
 public class CurrentDateTime {
 
     // 시간 포맷팅 함수

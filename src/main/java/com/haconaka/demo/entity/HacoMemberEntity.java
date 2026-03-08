@@ -14,7 +14,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class HacoMember {
+public class HacoMemberEntity {
 
     @Id
     @Column(name = "m_pk", nullable = false)

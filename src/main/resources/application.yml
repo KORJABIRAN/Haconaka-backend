@@ -1,11 +1,9 @@
 spring:
   datasource:
-#    url: jdbc:postgresql://dpg-d5qj2kcoud1c73e7m2q0-a.oregon-postgres.render.com/haconaka
-    url: jdbc:postgresql://dpg-d5qj2kcoud1c73e7m2q0-a/haconaka
+    url: jdbc:postgresql://localhost:5432/haconaka_backend
     username: ds6951
-    password: 5NTAVOTYcLGwX4vsbByXkpsQPIraYEzv
+    password: 1596ibaJ
     driver-class-name: org.postgresql.Driver
-
   jpa:
     hibernate:
       ddl-auto: update
@@ -14,17 +12,12 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
-
-
 server:
   port: 8080
-
 logging:
   level:
     com.haconaka.demo: INFO
     org.hibernate.SQL: WARN
-
 youtube:
-#  callback-base-url: "https://neologically-caulocarpous-elenora.ngrok-free.dev"
-  callback-base-url: "https://haconaka-backend-java.onrender.com"
+  callback-base-url: "https://d66c-2400-2410-b7e3-cf00-112c-f2d9-d4ab-b4a.ngrok-free.app"
   api-key: "AIzaSyDaJwlJQy--MSHz_DRBAcvTi2tc4Cg78CY"
