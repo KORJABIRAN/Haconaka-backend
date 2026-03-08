@@ -10,7 +10,7 @@ import lombok.*;
 @Builder
 @Entity
 @Table(name = "haco_currentlivestream")
-public class HacoCurrentLivestream {
+public class HacoCurrentLivestreamEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
