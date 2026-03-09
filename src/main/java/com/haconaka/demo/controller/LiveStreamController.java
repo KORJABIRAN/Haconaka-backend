@@ -1,7 +1,6 @@
 package com.haconaka.demo.controller;
 
-
-import com.haconaka.demo.service.MemberService;
+import com.haconaka.demo.service.LiveStreamService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -15,12 +14,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "http://localhost:5173")
-public class MemberController {
+public class LiveStreamController {
 
-    private final MemberService memberService;
+    private final LiveStreamService liveStreamService;
 
-    @GetMapping("/members")
-    public ResponseEntity<?> getMembers() {
-        return ResponseEntity.ok().body(memberService.selectAllMembers());
+    @GetMapping("/liveStream")
+    public ResponseEntity<?> getLiveStream() {
+        return ResponseEntity.ok().body(liveStreamService.selectAllLiveStream());
     }
 }

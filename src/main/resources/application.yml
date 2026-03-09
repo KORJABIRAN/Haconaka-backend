@@ -19,5 +19,5 @@ logging:
     com.haconaka.demo: INFO
     org.hibernate.SQL: WARN
 youtube:
-  callback-base-url: "https://d66c-2400-2410-b7e3-cf00-112c-f2d9-d4ab-b4a.ngrok-free.app"
+  callback-base-url: "https://cf94-2400-2410-b7e3-cf00-ed06-73d8-e3ce-73cf.ngrok-free.app"
   api-key: "AIzaSyDaJwlJQy--MSHz_DRBAcvTi2tc4Cg78CY"

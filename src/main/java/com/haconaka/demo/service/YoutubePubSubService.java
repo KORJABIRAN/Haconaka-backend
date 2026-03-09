@@ -6,7 +6,7 @@ import com.google.api.services.youtube.model.VideoListResponse;
 import com.haconaka.demo.config.CurrentDateTime;
 import com.haconaka.demo.dto.PubSubNotificationDto;
 import com.haconaka.demo.entity.HacoAddress;
-import com.haconaka.demo.entity.HacoCurrentLivestream;
+import com.haconaka.demo.entity.HacoCurrentLivestreamEntity;
 import com.haconaka.demo.repository.HacoAddressRepository;
 import com.haconaka.demo.repository.HacoCurrentLivestreamRepository;
 import lombok.RequiredArgsConstructor;
@@ -67,7 +67,7 @@ public class YoutubePubSubService {
                 int memberPk = ha.get(0).getMemberPk();
 
                 // 이제 memberPk를 취득했으니 videoId랑 같이 Livestream 테이블에 저장
-                currentRepo.save(HacoCurrentLivestream.builder()
+                currentRepo.save(HacoCurrentLivestreamEntity.builder()
                         .memberPk(memberPk)
                         .address(videoId)
                         .build());
@@ -136,9 +136,9 @@ public class YoutubePubSubService {
     public int refreshAllCurrent() {
         log.info("==================== Log start : update livestreaming information");
         log.info(currentDateTime.getCurrentDateTime() + " - Start update livestreaming information");
-        List<HacoCurrentLivestream> clt = currentRepo.findAll();
+        List<HacoCurrentLivestreamEntity> clt = currentRepo.findAll();
         List<String> videoIds = new ArrayList<>();
-        for (HacoCurrentLivestream h : clt) {
+        for (HacoCurrentLivestreamEntity h : clt) {
             String videoId = h.getAddress();
             videoIds.add(videoId);
         }
@@ -167,7 +167,7 @@ public class YoutubePubSubService {
 
             String status = "";
             for (Video item : items) {
-                List<HacoCurrentLivestream> ids = currentRepo.findByAddress(item.getId());
+                List<HacoCurrentLivestreamEntity> ids = currentRepo.findByAddress(item.getId());
                 status = item.getSnippet().getLiveBroadcastContent();
                 String tempLog = " / status : " + status +
                                  " / ChannelID : " + item.getSnippet().getChannelTitle() +

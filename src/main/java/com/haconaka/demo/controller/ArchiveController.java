@@ -1,7 +1,6 @@
 package com.haconaka.demo.controller;
 
-
-import com.haconaka.demo.service.MemberService;
+import com.haconaka.demo.service.ArchiveService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -15,12 +14,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "http://localhost:5173")
-public class MemberController {
+public class ArchiveController {
 
-    private final MemberService memberService;
+    private final ArchiveService archiveService;
 
-    @GetMapping("/members")
-    public ResponseEntity<?> getMembers() {
-        return ResponseEntity.ok().body(memberService.selectAllMembers());
+    @GetMapping("/archive")
+    public ResponseEntity<?> getAllArchive() {
+        return ResponseEntity.ok().body(archiveService.selectAllArchive());
     }
 }
