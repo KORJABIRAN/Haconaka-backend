@@ -18,7 +18,7 @@ public class ScheduledService {
     private volatile boolean isDatabaseEmpty = false;
     private LocalDateTime startEmpty = null;
     private volatile boolean isScheduleDisabled = false;
-    private YoutubePubSubService youtubePubSubService;
+    private final YoutubePubSubService youtubePubSubService;
     private final YoutubeSubscriptionService youtubeSubscriptionService;
 
     // 3분 단위 체크로 10분 재서 스케쥴링 멈추기
