@@ -1,6 +1,6 @@
-package com.haconaka.demo.service;
+package com.haconaka.demo.service.youtube;
 
-import com.haconaka.demo.entity.HacoAddress;
+import com.haconaka.demo.entity.HacoAddressEntity;
 import com.haconaka.demo.repository.HacoAddressRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,11 +26,12 @@ public class YoutubeSubscriptionService {
 
     private static final String HUB_URL = "https://pubsubhubbub.appspot.com/subscribe";
 
+    // 얘는....뭐하는애임?
     public void subscribeAllYtChannels() {
-        List<HacoAddress> channels = addressRepository.findByCategory("YchannelID");
+        List<HacoAddressEntity> channels = addressRepository.findByCategory("YchannelID");
         log.info("Found {} YchannelID rows", channels.size());
 
-        for (HacoAddress addr : channels) {
+        for (HacoAddressEntity addr : channels) {
             String channelId = addr.getAddress();
             if (channelId == null || channelId.isBlank()) {
                 continue;

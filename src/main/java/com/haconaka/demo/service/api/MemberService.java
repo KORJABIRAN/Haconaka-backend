@@ -1,4 +1,4 @@
-package com.haconaka.demo.service;
+package com.haconaka.demo.service.api;
 
 import com.haconaka.demo.entity.HacoMemberEntity;
 import com.haconaka.demo.repository.HacoMemberRepository;

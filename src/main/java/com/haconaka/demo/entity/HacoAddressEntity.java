@@ -12,7 +12,7 @@ import lombok.*;
 @Builder
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString
-public class HacoAddress {
+public class HacoAddressEntity {
 
     @Id
     @Column(name = "a_pk", nullable = false)

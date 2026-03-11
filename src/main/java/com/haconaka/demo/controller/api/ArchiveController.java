@@ -1,6 +1,6 @@
-package com.haconaka.demo.controller;
+package com.haconaka.demo.controller.api;
 
-import com.haconaka.demo.service.LiveStreamService;
+import com.haconaka.demo.service.api.ArchiveService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -14,12 +14,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "http://localhost:5173")
-public class LiveStreamController {
+public class ArchiveController {
 
-    private final LiveStreamService liveStreamService;
+    private final ArchiveService archiveService;
 
-    @GetMapping("/liveStream")
-    public ResponseEntity<?> getLiveStream() {
-        return ResponseEntity.ok().body(liveStreamService.selectAllLiveStream());
+    @GetMapping("/archive")
+    public ResponseEntity<?> getAllArchive() {
+        return ResponseEntity.ok().body(archiveService.selectAllArchive());
     }
 }

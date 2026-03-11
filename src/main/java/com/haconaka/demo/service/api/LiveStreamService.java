@@ -1,4 +1,4 @@
-package com.haconaka.demo.service;
+package com.haconaka.demo.service.api;
 
 import com.haconaka.demo.entity.HacoCurrentLivestreamEntity;
 import com.haconaka.demo.repository.HacoCurrentLivestreamRepository;

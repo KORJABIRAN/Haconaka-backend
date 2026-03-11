@@ -1,6 +1,7 @@
 package com.haconaka.demo.controller;
 
-import com.haconaka.demo.service.YoutubePubSubService;
+import com.haconaka.demo.config.RestartConfig;
+import com.haconaka.demo.service.youtube.YoutubeContentService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +14,8 @@ import org.springframework.web.bind.annotation.*;
 @CrossOrigin(origins = "http://localhost:5173")
 public class YoutubeCallbackController {
 
-    private final YoutubePubSubService youtubePubSubService;
+    private final YoutubeContentService youtubePubSubService;
+    private final RestartConfig restartConfig;
 
     @GetMapping("/callback")
     public String verifySubscription(HttpServletRequest request) {
@@ -25,7 +27,7 @@ public class YoutubeCallbackController {
     @PostMapping("/callback")
     public void handleNotification(@RequestBody String body) {
         log.info("Controller handleNotification called");
-        youtubePubSubService.restartSchedule();
+        restartConfig.restartSchedule();
         youtubePubSubService.handleNotification(body);
     }
 }

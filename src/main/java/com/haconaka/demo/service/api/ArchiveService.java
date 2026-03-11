@@ -1,4 +1,4 @@
-package com.haconaka.demo.service;
+package com.haconaka.demo.service.api;
 
 import com.haconaka.demo.entity.HacoArchiveEntity;
 import com.haconaka.demo.repository.HacoArchiveRepository;
