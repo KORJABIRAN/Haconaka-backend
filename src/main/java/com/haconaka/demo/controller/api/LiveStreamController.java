@@ -1,5 +1,6 @@
 package com.haconaka.demo.controller.api;
 
+import com.haconaka.demo.dto.LiveStreamItemDTO;
 import com.haconaka.demo.service.api.LiveStreamService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +9,8 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -18,8 +21,8 @@ public class LiveStreamController {
 
     private final LiveStreamService liveStreamService;
 
-    @GetMapping("/liveStream")
-    public ResponseEntity<?> getLiveStream() {
+    @GetMapping("/liveStreams")
+    public ResponseEntity<List<LiveStreamItemDTO>> getLiveStream() {
         return ResponseEntity.ok().body(liveStreamService.selectAllLiveStream());
     }
 }

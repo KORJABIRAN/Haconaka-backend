@@ -7,7 +7,7 @@ import com.haconaka.demo.dto.PubSubNotificationDto;
 import com.haconaka.demo.entity.HacoAddressEntity;
 import com.haconaka.demo.entity.HacoCurrentLivestreamEntity;
 import com.haconaka.demo.repository.HacoAddressRepository;
-import com.haconaka.demo.repository.HacoCurrentLivestreamRepository;
+import com.haconaka.demo.repository.livestream.HacoCurrentLivestreamRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -121,18 +121,20 @@ public class YoutubeContentService {
         // 주의! 얘는 무조건 1건 아님! 복수건일수 있음!
         // TODO: 얘도 가만보니까 루프로 정보만 따오고 요청은 한번만 가능할거같긴한데... 그럼 로그가 이상해지나? 아닌거같은데
         List<Video> videos = youtubeApi.getYoutubeStatusByVideoId(videoIds);
-        for (Video video : videos) {
-            String result;
-            String status = video.getSnippet().getLiveBroadcastContent();
-            String channelTitle = video.getSnippet().getChannelTitle();
-            String videoId = video.getId();
-            if (!"live".equals(status)) {
-                currentRepo.delete(currentRepo.findByAddress(video.getId()));
-                result = "DELETE";
-            } else {
-                result = "KEEP";
+        if (!videos.isEmpty()) {
+            for (Video video : videos) {
+                String result;
+                String status = video.getSnippet().getLiveBroadcastContent();
+                String channelTitle = video.getSnippet().getChannelTitle();
+                String videoId = video.getId();
+                if (!"live".equals(status)) {
+                    currentRepo.delete(currentRepo.findByAddress(video.getId()));
+                    result = "DELETE";
+                } else {
+                    result = "KEEP";
+                }
+                log.info("result : {} / status : {} / ChannelID : {} / videoId : {}", result, status, channelTitle, videoId);
             }
-            log.info("result : {} / status : {} / ChannelID : {} / videoId : {}", result, status, channelTitle, videoId);
         }
         // TODO : 삭제조건3 으로 비공개동영상도 추가해야될거같은데, 일단 비공개동영상의 리스폰스가 어떻게 생겨먹었는지 부터 알아야될거같음.
         log.info("{} - finished update livestreaming information", currentDateTime.getCurrentDateTime());
