@@ -31,7 +31,7 @@ public class YoutubeContentService {
 
     private final CurrentDateTime currentDateTime;
 
-    // 이름만 그럴듯한 껍데기!
+    // 이름만 그럴듯한 껍데기! (INSERT가 들어있어요)
     public void handleNotification(String atomXml) {
         insertLiveStream(atomXml);
     }
@@ -136,6 +136,7 @@ public class YoutubeContentService {
                 log.info("result : {} / status : {} / ChannelID : {} / videoId : {}", result, status, channelTitle, videoId);
             }
         }
+
         // TODO : 삭제조건3 으로 비공개동영상도 추가해야될거같은데, 일단 비공개동영상의 리스폰스가 어떻게 생겨먹었는지 부터 알아야될거같음.
         log.info("{} - finished update livestreaming information", currentDateTime.getCurrentDateTime());
         log.info("==================== Log End : update livestreaming information");

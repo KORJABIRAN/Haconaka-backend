@@ -1,6 +1,6 @@
 package com.haconaka.demo.controller.api;
 
-import com.haconaka.demo.dto.LiveStreamItemDTO;
+import com.haconaka.demo.dto.livestream.LiveStreamItemDTO;
 import com.haconaka.demo.service.api.LiveStreamService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

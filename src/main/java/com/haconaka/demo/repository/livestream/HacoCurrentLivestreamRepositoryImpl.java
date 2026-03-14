@@ -1,6 +1,6 @@
 package com.haconaka.demo.repository.livestream;
 
-import com.haconaka.demo.dto.LiveStreamItemDTO;
+import com.haconaka.demo.dto.livestream.LiveStreamItemDTO;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;

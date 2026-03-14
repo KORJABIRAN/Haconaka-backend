@@ -1,4 +1,4 @@
-package com.haconaka.demo.dto;
+package com.haconaka.demo.dto.livestream;
 
 import com.querydsl.core.annotations.QueryProjection;
 import lombok.Builder;

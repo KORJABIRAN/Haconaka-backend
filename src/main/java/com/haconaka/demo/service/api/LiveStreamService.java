@@ -1,6 +1,6 @@
 package com.haconaka.demo.service.api;
 
-import com.haconaka.demo.dto.LiveStreamItemDTO;
+import com.haconaka.demo.dto.livestream.LiveStreamItemDTO;
 import com.haconaka.demo.repository.livestream.HacoCurrentLivestreamRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

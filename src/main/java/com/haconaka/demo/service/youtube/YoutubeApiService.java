@@ -21,7 +21,7 @@ public class YoutubeApiService {
     @Value("${youtube.api-key}")
     private String youtubeApiKey;
 
-    // Youtube API : videoId로 video 리스트 취득
+    // Youtube API : videoIds로 video 리스트 취득
     public List<Video> getYoutubeStatusByVideoId(List<String> videoIds) {
         try {
             // videoIds가 empty이면 400에러가 터져요. 조건문으로 검사 필수.

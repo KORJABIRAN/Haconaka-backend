@@ -1,7 +1,7 @@
 package com.haconaka.demo.service.api;
 
 import com.haconaka.demo.entity.HacoArchiveEntity;
-import com.haconaka.demo.repository.HacoArchiveRepository;
+import com.haconaka.demo.repository.archive.HacoArchiveRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
