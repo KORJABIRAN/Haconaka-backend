@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
+import java.time.OffsetDateTime;
 
 @Data
 @NoArgsConstructor
@@ -13,7 +13,7 @@ import java.time.LocalDate;
 public class ArchiveItemDTO {
 
     // 고유식별값(PK)
-    private int id;
+    private Long id;
 
     // 섬네일
     private String thumbnail;
@@ -25,7 +25,7 @@ public class ArchiveItemDTO {
     private String title;
 
     // 날짜+시간
-    private LocalDate dateTime;
+    private OffsetDateTime startAt;
 
     // 아이콘
     private String icon;
@@ -35,12 +35,12 @@ public class ArchiveItemDTO {
 
     @QueryProjection
     public ArchiveItemDTO(
-            int id, String thumbnail, String videoId, String title, LocalDate dateTime, String icon, String name) {
+            Long id, String thumbnail, String videoId, String title, OffsetDateTime startAt, String icon, String name) {
         this.id = id;
         this.thumbnail = thumbnail;
         this.videoId = videoId;
         this.title = title;
-        this.dateTime = dateTime;
+        this.startAt = startAt;
         this.icon = icon;
         this.name = name;
     }

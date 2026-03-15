@@ -1,10 +1,12 @@
 package com.haconaka.demo.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.*;
+
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "member")
@@ -68,12 +70,4 @@ public class MemberEntity {
 
     @Column(name = "twitter_url", nullable = false, length = 512)
     private String twitterUrl;
-
-    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL)
-    @Builder.Default
-    private List<MemberAddressEntity> address = new ArrayList<>();
-
-    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL)
-    @Builder.Default
-    private List<LiveStreamEntity> liveStream = new ArrayList<>();
 }
