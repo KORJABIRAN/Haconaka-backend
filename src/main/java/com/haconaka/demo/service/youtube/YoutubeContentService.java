@@ -96,6 +96,7 @@ public class YoutubeContentService {
             log.info("{} - succeed save.", currentDateTime.getCurrentDateTime());
         } catch (Exception e) {
             log.error("Exception : Failed to handle notification");
+            e.getStackTrace();
         } finally {
             log.info("==================== Log End : new request from youtube PubSub");
         }
