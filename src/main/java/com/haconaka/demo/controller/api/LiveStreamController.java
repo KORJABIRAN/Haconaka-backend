@@ -16,7 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "https://haconaka-frontend.vercel.app")
 public class LiveStreamController {
 
     private final LiveStreamService liveStreamService;
