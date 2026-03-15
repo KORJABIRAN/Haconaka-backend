@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    active: dev
   datasource:
     url: jdbc:postgresql://localhost:5432/haconaka_backend
     username: ds6951
@@ -21,3 +23,5 @@ logging:
 youtube:
   callback-base-url: "https://fe93-2400-2410-b7e3-cf00-78a2-b2e7-fe07-4b9b.ngrok-free.app"
   api-key: "AIzaSyDaJwlJQy--MSHz_DRBAcvTi2tc4Cg78CY"
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
