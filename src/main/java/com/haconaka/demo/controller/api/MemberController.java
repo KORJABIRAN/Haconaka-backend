@@ -1,7 +1,7 @@
-package com.haconaka.demo.controller;
+package com.haconaka.demo.controller.api;
 
 
-import com.haconaka.demo.service.MemberService;
+import com.haconaka.demo.service.api.MemberService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;

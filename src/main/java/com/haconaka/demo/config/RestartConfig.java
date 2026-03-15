@@ -1,42 +1,51 @@
-package com.haconaka.demo.service;
+package com.haconaka.demo.config;
 
+import com.haconaka.demo.repository.livestream.LivestreamRepo;
+import com.haconaka.demo.service.youtube.YoutubeContentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
 
-@Slf4j
-@EnableScheduling
 @Service
+@Slf4j
 @RequiredArgsConstructor
-public class ScheduledService {
+public class RestartConfig {
+
+    private final YoutubeContentService youtubeContentService;
+    private final LivestreamRepo livestreamRepo;
 
     private volatile boolean isDatabaseEmpty = false;
     private LocalDateTime startEmpty = null;
     private volatile boolean isScheduleDisabled = false;
-    private final YoutubePubSubService youtubePubSubService;
-    private final YoutubeSubscriptionService youtubeSubscriptionService;
 
-    // 3분 단위 체크로 10분 재서 스케쥴링 멈추기
-    @Scheduled(cron = "5 0/3 * * * *")
-    public void scheduledRefresh() {
+    // 이 메서드 한방이면 스케쥴 살리가 OK
+    public void restartSchedule() {
+        isScheduleDisabled = false;
+        isDatabaseEmpty = false;
+        startEmpty = null;
+        log.info("어떤 형태로든 변화를 감지하여 스케쥴을 다시 기동합니다.");
+    }
+
+    // 에라모르겠다. 걍 여기다 넣어. 10분 동안 변화 없으면 로깅이 자동 종료되는 수동로직!!
+    public void deleteLiveStreamWithTenMinutesTimer() {
         // 너 10분 넘었어? 돌아가.
         if (isScheduleDisabled) {
             return;
         }
 
         // 스케쥴링수행 및 DB사이즈값 리턴
-        int valueSize = youtubePubSubService.refreshAllCurrent();
+        youtubeContentService.deleteLiveStream();
 
         LocalDateTime now = LocalDateTime.now();
 
+        long valueSize = livestreamRepo.count();
+
         // 조회해 보니 total == 0 이네?
         if (valueSize == 0) {
-            // 심지어 얘가 DB에 값이 있다고 착각하고있네?
+            // 심지어 얘가 DB가 0건이 아니라고 착각하고있네?
             if (!isDatabaseEmpty) {
                 isDatabaseEmpty = true;
                 startEmpty = now;
@@ -53,20 +62,7 @@ public class ScheduledService {
                 }
             }
         } else { // DB에 값이 0이었지만 새로 생겼어. 스케쥴링 살려내!
-            youtubePubSubService.restartSchedule();
+            restartSchedule();
         }
     }
-
-    // 서버 시작 30초 후 구독갱신 로직
-    @Scheduled(initialDelay = 30 * 1000)
-    public void scheduledTask() {
-        youtubeSubscriptionService.subscribeAllYtChannels();
-    }
-
-    // 매일 00시 05분 마다 (1일 1회) 구독갱신
-    @Scheduled(cron = "0 5 0 * * *")
-    public void scheduledTask2() {
-        youtubeSubscriptionService.subscribeAllYtChannels();
-    }
-
 }
