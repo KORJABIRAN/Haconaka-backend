@@ -1,8 +1,10 @@
 package com.haconaka.demo.controller.api;
 
+import com.haconaka.demo.dto.archive.ArchiveItemDTO;
 import com.haconaka.demo.service.api.ArchiveService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,8 +20,8 @@ public class ArchiveController {
 
     private final ArchiveService archiveService;
 
-    @GetMapping("/archive")
-    public ResponseEntity<?> getAllArchive() {
-        return ResponseEntity.ok().body(archiveService.selectAllArchive());
-    }
+//    @GetMapping("/archives")
+//    public ResponseEntity<Page<ArchiveItemDTO>> getAllArchive() {
+//        return ResponseEntity.ok().body(archiveService.selectAllArchive());
+//    }
 }

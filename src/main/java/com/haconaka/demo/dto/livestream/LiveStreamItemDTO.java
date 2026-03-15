@@ -9,16 +9,16 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class LiveStreamItemDTO {
-    private int id;
-    private int memberPk;
+    private Long id;
+    private Long memberId;
     private String name;
     private String icon;
     private String videoId;
 
     @QueryProjection
-    public LiveStreamItemDTO(int id, int memberPk, String name, String icon, String videoId) {
+    public LiveStreamItemDTO(Long id, Long memberId, String name, String icon, String videoId) {
         this.id = id;
-        this.memberPk = memberPk;
+        this.memberId = memberId;
         this.name = name;
         this.icon = icon;
         this.videoId = videoId;

@@ -4,10 +4,10 @@ import com.google.api.services.youtube.model.Video;
 import com.google.api.services.youtube.model.VideoSnippet;
 import com.haconaka.demo.config.CurrentDateTime;
 import com.haconaka.demo.dto.PubSubNotificationDto;
-import com.haconaka.demo.entity.HacoAddressEntity;
-import com.haconaka.demo.entity.HacoCurrentLivestreamEntity;
-import com.haconaka.demo.repository.HacoAddressRepository;
-import com.haconaka.demo.repository.livestream.HacoCurrentLivestreamRepository;
+import com.haconaka.demo.entity.LiveStreamEntity;
+import com.haconaka.demo.entity.MemberEntity;
+import com.haconaka.demo.repository.livestream.LivestreamRepo;
+import com.haconaka.demo.repository.member.MemberRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -24,8 +24,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class YoutubeContentService {
 
-    private final HacoCurrentLivestreamRepository currentRepo;
-    private final HacoAddressRepository addressRepo;
+    private final LivestreamRepo livestreamRepo;
+    private final MemberRepo memberRepo;
+
     private final YoutubeApiService youtubeApi;
     private final XmlParsingService xmlParsingService;
 
@@ -70,24 +71,24 @@ public class YoutubeContentService {
             }
 
             // 예외처리3. liveStream 테이블을 videoID로 찾아보니 이미 정보가 있어? 즉시 종료.
-            if (currentRepo.findByAddress(videoId) != null) {
+            if (livestreamRepo.findByVideoId(videoId) != null) {
                 log.warn("Data Integrity Error : Failed to save LiveStream : Data already present.");
                 return;
             }
 
-            // 채널id로 address 테이블 get해서 memberPk 취득
-            Integer memberPk = Optional.ofNullable(addressRepo.findByAddress(channelId)).orElseGet(() -> {
+            // 채널id로 address 테이블 get해서 memberId 취득
+            MemberEntity member = Optional.ofNullable(memberRepo.findByYoutubeChannelId(channelId)).orElseGet(() -> {
                 log.warn("Data Integrity Error : memberPK is not found. return 0 and finish process now.");
-                return new HacoAddressEntity();
-            }).getMemberPk();
-            if (memberPk == 0) return; // 예외처리4. 멤버PK 못찾았어? 즉시 종료.
+                return new MemberEntity();
+            });
+            if (member.getId() == 0) return; // 예외처리4. 멤버PK 못찾았어? 즉시 종료.
 
             // 이제 memberPk를 취득했으니 videoId랑 같이 Livestream 테이블에 저장
-            currentRepo.save(HacoCurrentLivestreamEntity.builder()
-                    .memberPk(memberPk)
-                    .address(videoId)
+            livestreamRepo.save(LiveStreamEntity.builder()
+                    .member(member)
+                    .videoId(videoId)
                     .build());
-            log.info(currentDateTime.getCurrentDateTime() + " - succeed save.");
+            log.info("{} - succeed save.", currentDateTime.getCurrentDateTime());
         } catch (Exception e) {
             log.error("Exception : Failed to handle notification");
         } finally {
@@ -99,20 +100,20 @@ public class YoutubeContentService {
     public void deleteLiveStream() {
         log.info("==================== Log start : update livestreaming information");
         log.info("{} - Start update livestreaming information", currentDateTime.getCurrentDateTime());
-        List<HacoCurrentLivestreamEntity> livestreamEntities = currentRepo.findAll();
+        List<LiveStreamEntity> livestreamEntities = livestreamRepo.findAll();
         List<String> videoIds = livestreamEntities.stream().
-                map(HacoCurrentLivestreamEntity::getAddress).toList();
+                map(LiveStreamEntity::getVideoId).toList();
 
         // 삭제조건1. DB내에 address가 2건 이상인 경우 (livestreamEntities를 이용한다.)
-        List<HacoCurrentLivestreamEntity> entitiesToDelete = livestreamEntities.stream()
-                .collect(Collectors.groupingBy(HacoCurrentLivestreamEntity::getAddress))
+        List<LiveStreamEntity> entitiesToDelete = livestreamEntities.stream()
+                .collect(Collectors.groupingBy(LiveStreamEntity::getVideoId))
                 .values().stream()
                 .filter(group -> group.size() > 1)
                 .flatMap(group -> group.stream().skip(1))
                 .collect(Collectors.toList());
 
         if (!entitiesToDelete.isEmpty()) {
-            currentRepo.deleteAll(entitiesToDelete);
+            livestreamRepo.deleteAll(entitiesToDelete);
             log.info("중복된 address 데이터 {}건을 삭제합니다.", entitiesToDelete.size());
         }
 
@@ -128,7 +129,7 @@ public class YoutubeContentService {
                 String channelTitle = video.getSnippet().getChannelTitle();
                 String videoId = video.getId();
                 if (!"live".equals(status)) {
-                    currentRepo.delete(currentRepo.findByAddress(video.getId()));
+                    livestreamRepo.delete(livestreamRepo.findByVideoId(video.getId()));
                     result = "DELETE";
                 } else {
                     result = "KEEP";

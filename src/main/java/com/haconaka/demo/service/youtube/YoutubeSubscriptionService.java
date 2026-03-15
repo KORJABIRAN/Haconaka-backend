@@ -1,7 +1,7 @@
 package com.haconaka.demo.service.youtube;
 
-import com.haconaka.demo.entity.HacoAddressEntity;
-import com.haconaka.demo.repository.HacoAddressRepository;
+import com.haconaka.demo.entity.MemberEntity;
+import com.haconaka.demo.repository.member.MemberRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,7 +18,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class YoutubeSubscriptionService {
 
-    private final HacoAddressRepository addressRepository;
+    private final MemberRepo memberRepo;
+
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${youtube.callback-base-url}")
@@ -28,19 +29,20 @@ public class YoutubeSubscriptionService {
 
     // 얘는....뭐하는애임?
     public void subscribeAllYtChannels() {
-        List<HacoAddressEntity> channels = addressRepository.findByCategory("YchannelID");
-        log.info("Found {} YchannelID rows", channels.size());
 
-        for (HacoAddressEntity addr : channels) {
-            String channelId = addr.getAddress();
+        List<String> channelIds = memberRepo.findAll().stream()
+                .map(MemberEntity::getYoutubeChannelId).toList();
+        log.info("Found {} Youtube channel ID rows", channelIds.size());
+
+        for (String channelId : channelIds) {
             if (channelId == null || channelId.isBlank()) {
                 continue;
             }
             try {
                 subscribeChannel(channelId);
             } catch (Exception e) {
-                log.error("Failed to subscribe channelId={} (a_pk={})",
-                        channelId, addr.getId(), e);
+                log.error("Failed to subscribe channelId={} ",
+                        channelId, e);
             }
         }
     }
@@ -55,7 +57,7 @@ public class YoutubeSubscriptionService {
                 + "&hub.topic=" + topic
                 + "&hub.callback=" + URLEncoder.encode(callback, StandardCharsets.UTF_8)
                 + "&hub.verify=async"
-                + "&hub.verify_token=testtoken";
+                + "&hub.verify_token=tesToken";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);

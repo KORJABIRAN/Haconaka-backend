@@ -1,6 +1,6 @@
 package com.haconaka.demo.config;
 
-import com.haconaka.demo.repository.livestream.HacoCurrentLivestreamRepository;
+import com.haconaka.demo.repository.livestream.LivestreamRepo;
 import com.haconaka.demo.service.youtube.YoutubeContentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 public class RestartConfig {
 
     private final YoutubeContentService youtubeContentService;
-    private final HacoCurrentLivestreamRepository livestreamRepo;
+    private final LivestreamRepo livestreamRepo;
 
     private volatile boolean isDatabaseEmpty = false;
     private LocalDateTime startEmpty = null;
@@ -45,7 +45,7 @@ public class RestartConfig {
 
         // 조회해 보니 total == 0 이네?
         if (valueSize == 0) {
-            // 심지어 얘가 DB에 값이 있다고 착각하고있네?
+            // 심지어 얘가 DB가 0건이 아니라고 착각하고있네?
             if (!isDatabaseEmpty) {
                 isDatabaseEmpty = true;
                 startEmpty = now;
