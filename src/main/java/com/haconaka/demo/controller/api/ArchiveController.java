@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "https://haconaka-frontend.vercel.app")
+//@CrossOrigin(origins = "https://haconaka-frontend.vercel.app")
 public class ArchiveController {
 
     private final ArchiveService archiveService;
