@@ -3,13 +3,14 @@ package com.haconaka.demo.service.api;
 import com.haconaka.demo.dto.archive.ArchiveDetailDTO;
 import com.haconaka.demo.dto.archive.ArchiveDetailInnerDTO;
 import com.haconaka.demo.dto.archive.ArchiveItemDTO;
+import com.haconaka.demo.dto.archive.ArchiveSearchCondition;
 import com.haconaka.demo.entity.ArchiveEntity;
 import com.haconaka.demo.repository.archive.ArchiveRepo;
 import com.haconaka.demo.repository.member.MemberRepo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -23,9 +24,16 @@ public class ArchiveService {
     private final ArchiveRepo archiveRepo;
     private final MemberRepo memberRepo;
 
-    public Page<ArchiveItemDTO> selectAllArchives(int page) {
+    public Page<ArchiveItemDTO> selectAllArchivesWithCondition(ArchiveSearchCondition condition, Pageable pageable) {
 
-        return archiveRepo.findAll(PageRequest.of(0, page, Sort.by("startAt").descending()))
+        // 1. 레포지토리 호출 (pageable을 그대로 전달해서 DB 단에서 정렬/페이징 처리)
+        List<ArchiveEntity> entities = archiveRepo.findAllByCondition(condition, pageable);
+
+        // 2. 전체 데이터 개수 조회 (페이지네이션 계산용)
+        long total = archiveRepo.countArchives(condition);
+
+        // 3. 엔티티를 DTO로 변환
+        List<ArchiveItemDTO> dtos = entities.stream()
                 .map(c -> ArchiveItemDTO.builder()
                         .id(c.getId())
                         .thumbnail(c.getThumbnail())
@@ -35,7 +43,11 @@ public class ArchiveService {
                         .title(c.getTitle())
                         .icon(c.getMember().getIcon())
                         .startAt(c.getStartAt())
-                        .build());
+                        .build())
+                .toList();
+
+        // 4. PageImpl 객체로 감싸서 반환 (Spring Data JPA의 표준 페이징 객체)
+        return new PageImpl<>(dtos, pageable, total);
     }
 
     public ArchiveDetailDTO selectOneArchive(String videoId) {

@@ -137,7 +137,7 @@ public class YoutubeContentService {
                 String channelTitle = video.getSnippet().getChannelTitle();
                 String videoId = video.getId();
                 if (!"live".equals(status)) {
-                    livestreamRepo.delete(livestreamRepo.findByVideoId(video.getId()));
+                    livestreamRepo.delete(livestreamRepo.findByVideoId(videoId));
                     result = "DELETE";
                 } else {
                     result = "KEEP";
@@ -146,7 +146,18 @@ public class YoutubeContentService {
             }
         }
 
-        // TODO : 삭제조건3 으로 비공개동영상도 추가해야될거같은데, 일단 비공개동영상의 리스폰스가 어떻게 생겨먹었는지 부터 알아야될거같음.
+        // 삭제조건3. 비공개,멤버한정전환,동영상삭제 등이 일어난 경우
+        List<String> videoIdsAPI = videos.stream().map(Video::getId).toList();
+
+        List<LiveStreamEntity> retiredItem = livestreamEntities.stream()
+                .filter(data -> !videoIdsAPI.contains(data.getVideoId()))
+                .toList();
+
+        if (!retiredItem.isEmpty()) {
+            livestreamRepo.deleteAll(retiredItem);
+            log.info("비공개/멤버전환/삭제된 address 데이터 {}건을 삭제합니다.", retiredItem.size());
+        }
+
         log.info("{} - finished update livestreaming information", currentDateTime.getCurrentDateTime());
         log.info("==================== Log End : update livestreaming information");
     }

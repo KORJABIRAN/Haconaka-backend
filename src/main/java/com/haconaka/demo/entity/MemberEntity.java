@@ -1,20 +1,19 @@
 package com.haconaka.demo.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "member")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Table(name = "member", indexes = {
+        @Index(name = "idx_member_name_en", columnList = "name_en", unique = true)
+})
 public class MemberEntity {
 
     @Id
@@ -22,6 +21,10 @@ public class MemberEntity {
 
     @Column(nullable = false, length = 64)
     private String name;
+
+    @Column(name = "name_en", nullable = false, length = 512, columnDefinition = "VARCHAR(64) DEFAULT 'DEFAULT'")
+    @Builder.Default
+    private String nameEn = "DEFAULT";
 
     @Column(name = "birth_date", nullable = false)
     private LocalDate birthDate;
