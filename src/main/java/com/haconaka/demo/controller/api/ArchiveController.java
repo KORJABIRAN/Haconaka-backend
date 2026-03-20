@@ -2,11 +2,15 @@ package com.haconaka.demo.controller.api;
 
 import com.haconaka.demo.dto.archive.ArchiveDetailDTO;
 import com.haconaka.demo.dto.archive.ArchiveItemDTO;
+import com.haconaka.demo.dto.archive.ArchiveSearchCondition;
 import com.haconaka.demo.service.api.ArchiveService;
 import com.haconaka.demo.service.youtube.YoutubeContentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,9 +26,15 @@ public class ArchiveController {
 
     @GetMapping("/archives")
     public ResponseEntity<Page<ArchiveItemDTO>> getAllArchives(
-            @RequestParam(value = "page", defaultValue = "10") int page
+            @ModelAttribute
+            ArchiveSearchCondition condition,
+            @PageableDefault(
+                    size = 20,
+                    sort = "startAt",
+                    direction = Sort.Direction.DESC)
+            Pageable pageable
     ) {
-        return ResponseEntity.ok().body(archiveService.selectAllArchives(page));
+        return ResponseEntity.ok().body(archiveService.selectAllArchivesWithCondition(condition, pageable));
     }
 
     @GetMapping("/archive/{videoId}")
