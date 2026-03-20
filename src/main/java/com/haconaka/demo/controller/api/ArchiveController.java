@@ -1,5 +1,6 @@
 package com.haconaka.demo.controller.api;
 
+import com.haconaka.demo.dto.archive.ArchiveDetailDTO;
 import com.haconaka.demo.dto.archive.ArchiveItemDTO;
 import com.haconaka.demo.service.api.ArchiveService;
 import com.haconaka.demo.service.youtube.YoutubeContentService;
@@ -20,10 +21,15 @@ public class ArchiveController {
     private final YoutubeContentService youtubeContentService;
 
     @GetMapping("/archives")
-    public ResponseEntity<Page<ArchiveItemDTO>> getAllArchive(
+    public ResponseEntity<Page<ArchiveItemDTO>> getAllArchives(
             @RequestParam(value = "page", defaultValue = "10") int page
     ) {
-        return ResponseEntity.ok().body(archiveService.selectAllArchive(page));
+        return ResponseEntity.ok().body(archiveService.selectAllArchives(page));
+    }
+
+    @GetMapping("/archive/{videoId}")
+    public ResponseEntity<ArchiveDetailDTO> getArchive(@PathVariable("videoId") String videoId) {
+        return ResponseEntity.ok().body(archiveService.selectOneArchive(videoId));
     }
 
     // All Archive Insert (약 2만건)

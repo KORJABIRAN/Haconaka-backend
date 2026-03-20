@@ -1,5 +1,6 @@
 package com.haconaka.demo.entity;
 
+import com.haconaka.demo.config.LongListJsonConverter;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -43,6 +44,7 @@ public class ArchiveEntity {
     @Column(name = "collabo_type", nullable = false, length = 32)
     private String collaboType = "NONE";
 
+    @Convert(converter = LongListJsonConverter.class)
     @Column(name = "collabo_members", columnDefinition = "jsonb")
-    private List<String> collaboMembers;
+    private List<Long> collaboMembers;
 }
