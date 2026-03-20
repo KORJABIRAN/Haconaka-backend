@@ -20,8 +20,10 @@ public class LiveStreamService {
                         .id(l.getId())
                         .memberId(l.getMember().getId())
                         .name(l.getMember().getName())
+                        .title(l.getTitle())
                         .icon(l.getMember().getIcon())
                         .videoId(l.getVideoId())
+                        .channelId(l.getMember().getYoutubeChannelId())
                         .build()
                 ).toList();
     }

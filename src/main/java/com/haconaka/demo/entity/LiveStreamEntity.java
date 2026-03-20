@@ -24,6 +24,9 @@ public class LiveStreamEntity {
     @Column(name = "video_id", nullable = false, unique = true, length = 16)
     private String videoId;
 
+    @Column(name = "title", nullable = false, length = 512)
+    private String title;
+
     @Builder.Default
     @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted = false;

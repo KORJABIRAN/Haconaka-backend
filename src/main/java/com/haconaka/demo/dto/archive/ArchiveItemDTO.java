@@ -21,6 +21,9 @@ public class ArchiveItemDTO {
     // 비디오주소
     private String videoId;
 
+    // 채널아이디
+    private String channelId;
+
     // 제목
     private String title;
 
@@ -35,10 +38,11 @@ public class ArchiveItemDTO {
 
     @QueryProjection
     public ArchiveItemDTO(
-            Long id, String thumbnail, String videoId, String title, OffsetDateTime startAt, String icon, String name) {
+            Long id, String thumbnail, String videoId, String channelId, String title, OffsetDateTime startAt, String icon, String name) {
         this.id = id;
         this.thumbnail = thumbnail;
         this.videoId = videoId;
+        this.channelId = channelId;
         this.title = title;
         this.startAt = startAt;
         this.icon = icon;

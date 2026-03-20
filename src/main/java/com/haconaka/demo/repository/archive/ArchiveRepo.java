@@ -8,8 +8,10 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface ArchiveRepo extends JpaRepository<ArchiveEntity, Integer>, ArchiveRepoCustom {
+public interface ArchiveRepo extends JpaRepository<ArchiveEntity, Long>, ArchiveRepoCustom {
 
     @Query("SELECT a.videoId FROM ArchiveEntity a")
     List<String> findAllVideoIds();
+
+    ArchiveEntity findByVideoId(String videoId);
 }

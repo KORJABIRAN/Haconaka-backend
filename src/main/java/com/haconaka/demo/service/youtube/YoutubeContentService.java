@@ -43,13 +43,14 @@ public class YoutubeContentService {
     }
 
     // LiveStream INSERT 로직
-    public void insertLiveStream (String atomXml) {
+    public void insertLiveStream(String atomXml) {
         try {
             // TODO:데이터가1건이 아닌경우에 대해 예외처리를 할 필요가 있음.
             // 여기서는 pubSub으로 들어온 요청이 무조건 1개라고 가정합니다.
             PubSubNotificationDto pubSubData = xmlParsingService.parseAtomXml(atomXml).get(0);
             String channelId = pubSubData.getChannelId();
             String videoId = pubSubData.getVideoId();
+            String title = pubSubData.getTitle();
             log.info("==================== Log Start : new request from youtube PubSub");
             log.info("{} - A new request!", currentDateTime.getCurrentDateTime());
             log.info("channelID : {} / videoID : {} / title : {}", channelId, videoId, pubSubData.getTitle());
@@ -92,6 +93,7 @@ public class YoutubeContentService {
             livestreamRepo.save(LiveStreamEntity.builder()
                     .member(member)
                     .videoId(videoId)
+                    .title(title)
                     .build());
             log.info("{} - succeed save.", currentDateTime.getCurrentDateTime());
         } catch (Exception e) {
