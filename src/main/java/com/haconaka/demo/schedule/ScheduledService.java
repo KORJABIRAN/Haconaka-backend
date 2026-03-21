@@ -47,6 +47,6 @@ public class ScheduledService {
     @Scheduled(cron = "0 15 0 * * *", zone = "Asia/Seoul")
     public void insertArchiveDaily() {
         // true : AllArchive / false : 각 채널마다 50건 / 기본적으로 false입니다.
-        youtubeContentService.insertAllArchive(false);
+        youtubeContentService.insertArchive(false);
     }
 }

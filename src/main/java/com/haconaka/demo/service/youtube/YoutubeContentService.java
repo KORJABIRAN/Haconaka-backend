@@ -1,9 +1,6 @@
 package com.haconaka.demo.service.youtube;
 
-import com.google.api.services.youtube.model.PlaylistItem;
-import com.google.api.services.youtube.model.ThumbnailDetails;
-import com.google.api.services.youtube.model.Video;
-import com.google.api.services.youtube.model.VideoSnippet;
+import com.google.api.services.youtube.model.*;
 import com.haconaka.demo.config.CurrentDateTime;
 import com.haconaka.demo.dto.PubSubNotificationDto;
 import com.haconaka.demo.entity.ArchiveEntity;
@@ -15,11 +12,15 @@ import com.haconaka.demo.repository.member.MemberRepo;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -37,7 +38,7 @@ public class YoutubeContentService {
 
     private final CurrentDateTime currentDateTime;
 
-    // 이름만 그럴듯한 껍데기! (INSERT가 들어있어요)
+    // 이름만 그럴듯한 껍데기! (LiveStream INSERT가 들어있어요)
     public void handleNotification(String atomXml) {
         insertLiveStream(atomXml);
     }
@@ -164,67 +165,142 @@ public class YoutubeContentService {
 
     // Archive 테이블 All INSERT (약 2만건, 왠만하면 돌리는것을 자제합시다.)
     @Transactional
-    public void insertAllArchive(boolean isAll) {
-        log.info("===================== Log start : insert all archive");
-        log.info("{} - Start insert all archive", currentDateTime.getCurrentDateTime());
+    @Async
+    public void insertArchive(boolean isAll) {
+        try {
+            log.info("===================== Log start : insert all archive");
+            log.info("{} - Start insert all archive", currentDateTime.getCurrentDateTime());
 
-        // 멤버 전체조회 후 Map화 (인덱싱 최적화) / Key: YoutubePlaylistId, Value: MemberEntity
-        Map<String, MemberEntity> memberMap = memberRepo.findAll().stream()
-                .collect(Collectors.toMap(
-                        MemberEntity::getYoutubePlaylistId,
-                        member -> member,
-                        (existing, replacement) -> existing
-                ));
+            // 쿼리 최소화 위해 1번만 변수에 담아 조회.
+            List<MemberEntity> baseMembers = memberRepo.findAll();
 
-        List<String> playlistIds = new ArrayList<>(memberMap.keySet());
+            // 나~~~중에 가져다 쓸 인덱싱용 Map / Key: YoutubeChannelId, Value: MemberEntity
+            Map<String, MemberEntity> channelIdAndMemberMap = baseMembers.stream()
+                    .collect(Collectors.toMap(
+                            MemberEntity::getYoutubeChannelId, member -> member));
 
-        // Youtube Data API : 재생목록 내 전체 동영상 취득
-        List<PlaylistItem> allPlaylistItems = youtubeApi.getYoutubeVideosInPlaylist(playlistIds, isAll);
-        log.info("수집 완료. 총 비디오 개수: {}", allPlaylistItems.size());
+            // 29명의 playlistIds 추출
+            List<String> playlistIds = baseMembers.stream().map(MemberEntity::getYoutubePlaylistId).toList();
 
-        Set<String> existingVideoIds = new HashSet<>(archiveRepo.findAllVideoIds());
+            // Youtube Data API : 재생목록 내 전체 동영상 취득
+            log.info("Part 1 : start - playlistIds로 PlaylistItem 취득");
+            List<PlaylistItem> allPlaylistItems = youtubeApi.getYoutubeVideosInPlaylist(playlistIds, isAll);
+            log.info("Part 1 : end - playlistIds로 PlaylistItem 취득. 총 비디오 개수: {}", allPlaylistItems.size());
+            List<String> videoIdsYoutube = allPlaylistItems.stream()
+                    .map(data -> data.getContentDetails().getVideoId()).toList();
 
-        // PlaylistItem -> ArchiveEntity 변환 (Stream 활용)
-        List<ArchiveEntity> archiveEntities = allPlaylistItems.stream()
-                .map(item -> {
-                    String videoId = item.getContentDetails().getVideoId();
+            // Youtube Data API : 취득한 전체동영상의 videoIds 로 DetailList를 조회
+            List<Video> allVideoDetail = new ArrayList<>();
+            log.info("Part 2 : start - {}건의 videoIds로 detail한 정보 취득", allPlaylistItems.size());
+            for (int i = 0; i < videoIdsYoutube.size(); i += 50) {
+                int endIndex = Math.min(i + 50, videoIdsYoutube.size());
+                List<String> videoIdsSize50 = videoIdsYoutube.subList(i, endIndex);
+                allVideoDetail.addAll(youtubeApi.getYoutubeStatusByVideoId(videoIdsSize50));
+                log.info("Part 2 : Processed: {} / {}", endIndex, videoIdsYoutube.size());
+            }
+            log.info("Part 2 : end - {}건의 videoIds로 detail한 정보 취득", allPlaylistItems.size());
 
-                    // [추가] 이미 DB에 존재하는 videoId라면 null 반환해서 걸러냄
-                    if (existingVideoIds.contains(videoId)) {
-                        return null;
+            // 1만건의 videoIds 추출
+            // 이미 했네? videoIdsYoutube 가 있네?
+
+            // 1만건의 videoIds로 중복인 DB 데이터를 긁어옴. 500건씩 끊어서 조회함.
+            log.info("Part 3 : start - {}건의 videoIds로 중복값을 DB에서 조회", videoIdsYoutube.size());
+            List<ArchiveEntity> updateArchiveEntities = new ArrayList<>();
+            for (int i = 0; i < videoIdsYoutube.size(); i += 500) {
+                int endIndex = Math.min(i + 500, videoIdsYoutube.size());
+                List<String> videoIdsSize500 = videoIdsYoutube.subList(i, endIndex);
+                updateArchiveEntities.addAll(archiveRepo.findAllByVideoIdIn(videoIdsSize500));
+                log.info("Part 3 : Processed: {} / {}", endIndex, videoIdsYoutube.size());
+            }
+            log.info("Part 3 : end - {}건의 videoIds로 중복값을 DB에서 조회. 총 중복 개수 : {}",
+                    videoIdsYoutube.size(),  updateArchiveEntities.size());
+
+            // 검색이 쉽도록 위 리스트를 Map으로 바꿀거임.
+            Map<String, ArchiveEntity> updateMap = updateArchiveEntities.stream()
+                    .collect(Collectors.toMap(ArchiveEntity::getVideoId, a -> a));
+
+            // 1만건의 Video 객체를 대상으로 루프.
+            int insertCount = 0;
+            int updateCount = 0;
+            List<ArchiveEntity> finalEntities = new ArrayList<>();
+            for (Video video : allVideoDetail) {
+                // Map 에서 videoId로 value를 (DB에서 꺼내온 ArchiveEntity를) 취득
+                ArchiveEntity tempEntity = updateMap.get(video.getId());
+
+                if (tempEntity != null) { // 값이 있음 -> 중복임 -> UPDATE 대상임 -> DB데이터를 가공함.
+                    boolean isChanged = !tempEntity.getTitle().equals(video.getSnippet().getTitle())
+                            || !tempEntity.getThumbnail().equals(getThumbnail(video))
+                            || !tempEntity.getStartAt().equals(getStartAt(video));
+                    if (isChanged) {
+                        tempEntity.setTitle(video.getSnippet().getTitle());
+                        tempEntity.setThumbnail(getThumbnail(video));
+                        tempEntity.setStartAt(getStartAt(video));
+                        updateCount++;
+                        finalEntities.add(tempEntity);
                     }
+                } else { // 값이 없음 -> 신규임 -> Insert 대상임 -> 신입 Video 객체를 ArchiveEntity 객체로 갈아입혀야함.
+                    finalEntities.add(convertVideoToArchiveEntity(video, channelIdAndMemberMap));
+                    insertCount++;
+                }
+            }
 
-                    String pId = item.getSnippet().getPlaylistId();
-                    MemberEntity member = memberMap.get(pId);
-
-                    if (member == null) return null;
-
-                    // 섬네일 단계별 추출
-                    ThumbnailDetails thumbnails = item.getSnippet().getThumbnails();
-                    if (thumbnails == null) return null;
-                    String thumbnailUrl = thumbnails.getDefault().getUrl();
-                    if (thumbnails.getHigh() != null) thumbnailUrl = thumbnails.getHigh().getUrl();
-                    if (thumbnails.getStandard() != null) thumbnailUrl = thumbnails.getStandard().getUrl();
-                    if (thumbnails.getMaxres() != null) thumbnailUrl = thumbnails.getMaxres().getUrl();
-
-                    return ArchiveEntity.builder()
-                            .member(member)
-                            .videoId(videoId)
-                            .title(item.getSnippet().getTitle())
-                            .thumbnail(thumbnailUrl)
-                            .startAt(OffsetDateTime.parse(item.getSnippet().getPublishedAt().toString()))
-                            .build();
-                })
-                .filter(Objects::nonNull)
-                .toList();
-
-        // 4. DB 저장 (Batch Insert 최적화)
-        // 15,000건을 한 번에 넣기보다 1,000건씩 끊어서 저장하는 것을 추천 (선택 사항)
-        if (!archiveEntities.isEmpty()) {
-            archiveRepo.saveAll(archiveEntities);
-            log.info("성공적으로 {}건의 아카이브를 저장했습니다.", archiveEntities.size());
+            // 가공이 길었다. 드디어 saveAll을 할 시간임. 근데 얘도 끊어서 돌려야됨. 500건씩 끊어볼까?
+            log.info("Part 4 : {}건의 archive를 upsert 처리 시작", finalEntities.size());
+            if (!finalEntities.isEmpty()) {
+                for (int i = 0; i < finalEntities.size(); i += 500) {
+                    int endIndex = Math.min(i + 500, finalEntities.size());
+                    List<ArchiveEntity> entities500 = finalEntities.subList(i, endIndex);
+                    archiveRepo.saveAll(entities500);
+                    archiveRepo.flush();
+                    log.info("Part 4 : Processed: {} / {}", endIndex, finalEntities.size());
+                }
+                log.info("Part 4 : {}건의 archive를 upsert 처리 완료", finalEntities.size());
+                log.info("Part 4 : {}건의 행을 INSERT 하였습니다.", insertCount);
+                log.info("Part 4 : {}건의 행을 UPDATE 하였습니다.", updateCount);
+            }
+            log.info("{} - End insert all archive", currentDateTime.getCurrentDateTime());
+            log.info("===================== Log end : insert all archive");
+        } catch (Exception e) {
+            log.error("치명적인 (혹은 예상못한) 에러 발생 : YoutubeContentService 클래스의 insertArchive 메서드에서 발생. " +
+                    "어디서 터졌는지는 자세한 로그를 보세요. {}", e.getMessage(), e);
+            throw e;
         }
+    }
 
-        log.info("{} - End insert all archive", currentDateTime.getCurrentDateTime());
+    // insertArchive의 부품 1번쨰.
+    private ArchiveEntity convertVideoToArchiveEntity(Video video, Map<String, MemberEntity> channelIdAndMemberMap) {
+        return ArchiveEntity.builder()
+                .member(channelIdAndMemberMap.get(video.getSnippet().getChannelId()))
+                .videoId(video.getId())
+                .title(video.getSnippet().getTitle())
+                .thumbnail(getThumbnail(video))
+                .startAt(getStartAt(video))
+                .build();
+    }
+
+    // insertArchive의 부품 2번쨰.
+    private String getThumbnail(Video video) {
+        // 섬네일 단계별 추출
+        // 제일 낮은 Default로 시작 -> High가 있어? 갈아끼워 -> Standard가 있어? 갈아끼워
+        // Maxres가 있어? 갈아끼워. (끝)
+        ThumbnailDetails thumbnails = video.getSnippet().getThumbnails();
+        if (thumbnails == null) return null;
+        String thumbnailUrl = thumbnails.getDefault().getUrl();
+        if (thumbnails.getHigh() != null) thumbnailUrl = thumbnails.getHigh().getUrl();
+        if (thumbnails.getStandard() != null) thumbnailUrl = thumbnails.getStandard().getUrl();
+        if (thumbnails.getMaxres() != null) thumbnailUrl = thumbnails.getMaxres().getUrl();
+        return thumbnailUrl;
+    }
+
+    // insertArchive의 부품 3번쨰.
+    private OffsetDateTime getStartAt(Video video) {
+        // 친절하게 단계별 null 체크를 통해 안전한 데이터를 뽑아보도록 합시다.
+        // 옵셔널의 map은 여러개일때, null이 한번이라도 터지면 다른 map을 싹다 무시하고 or로 넘어가는 특성이 있기때문에
+        // 1번 map의 결과가 null 이라고해서 2번 map에서 NPE가 터질일이 없어요.
+        return Optional.ofNullable(video.getLiveStreamingDetails())
+                .map(VideoLiveStreamingDetails::getActualStartTime)
+                .map(googleDt -> OffsetDateTime.parse(googleDt.toStringRfc3339()))
+                .orElseGet(() -> OffsetDateTime.parse(video.getSnippet().getPublishedAt().toStringRfc3339()));
+        // ActualStartTime이 존재하면 그 값을, null이면 PublishedAt을 리턴합니다.
     }
 }
