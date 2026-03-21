@@ -14,4 +14,5 @@ public interface ArchiveRepo extends JpaRepository<ArchiveEntity, Long>, Archive
     List<String> findAllVideoIds();
 
     ArchiveEntity findByVideoId(String videoId);
+    List<ArchiveEntity> findAllByVideoIdIn(List<String> videoIds);
 }

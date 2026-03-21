@@ -62,6 +62,7 @@ public class YoutubeApiService {
 
                     if (items != null) {
                         allItems.addAll(items);
+                        log.info("Processed: total {}", allItems.size());
                     }
 
                     // 여기 중요함. 브레이크 없으면 2만건 전체조회임. 브레이크가 있어야 각 채널마다 50건 조회임.
@@ -78,6 +79,9 @@ public class YoutubeApiService {
                         playlistId, e.getDetails().getMessage(), e.getStatusCode());
             } catch (IOException e) {
                 log.error("Network or General error for playlistId: {}", playlistId, e);
+            } catch (Exception e) {
+                log.warn("뭔가 예상치 못한 Exception 입니다 : YoutubeApiService 클래스 getYoutubeVideosInPlaylist 에서 catch가 호출됨. ");
+                e.printStackTrace();
             }
         }
         return allItems;

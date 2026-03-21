@@ -43,10 +43,10 @@ public class ArchiveController {
     }
 
     // All Archive Insert (약 2만건)
-    @PostMapping("/archives/AllArchiveInsert")
-    public ResponseEntity<?> insertTestArchive(@RequestParam(name = "isAll", defaultValue = "true") boolean isAll ) {
+    @PostMapping("/archives/archiveInsert")
+    public ResponseEntity<?> insertAllArchive(@RequestParam(name = "isAll", defaultValue = "true") boolean isAll ) {
         // true : AllArchive / false : 각 채널마다 50건 / 기본값은 ture 입니다.
-        youtubeContentService.insertAllArchive(isAll);
+        youtubeContentService.insertArchive(isAll);
         return ResponseEntity.ok().build();
     }
 }
