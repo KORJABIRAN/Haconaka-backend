@@ -17,10 +17,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -182,82 +179,77 @@ public class YoutubeContentService {
             // 29명의 playlistIds 추출
             List<String> playlistIds = baseMembers.stream().map(MemberEntity::getYoutubePlaylistId).toList();
 
-            // Youtube Data API : 재생목록 내 전체 동영상 취득
-            log.info("Part 1 : start - playlistIds로 PlaylistItem 취득");
-            List<PlaylistItem> allPlaylistItems = youtubeApi.getYoutubeVideosInPlaylist(playlistIds, isAll);
-            log.info("Part 1 : end - playlistIds로 PlaylistItem 취득. 총 비디오 개수: {}", allPlaylistItems.size());
-            List<String> videoIdsYoutube = allPlaylistItems.stream()
-                    .map(data -> data.getContentDetails().getVideoId()).toList();
+            // Youtube Data API : 재생목록 29개 내 전체 videoId 취득
+            log.info("Part 1 : start - playlistIds로 videoIdsYoutube 취득");
+            List<String> videoIdsYoutube = youtubeApi.getYoutubeVideoIdsInPlaylist(playlistIds, isAll);
+            log.info("Part 1 : end - playlistIds로 videoIdsYoutube 취득. 총 ID 개수: {}", videoIdsYoutube.size());
 
-            // Youtube Data API : 취득한 전체동영상의 videoIds 로 DetailList를 조회
-            List<Video> allVideoDetail = new ArrayList<>();
-            log.info("Part 2 : start - {}건의 videoIds로 detail한 정보 취득", allPlaylistItems.size());
-            for (int i = 0; i < videoIdsYoutube.size(); i += 50) {
-                int endIndex = Math.min(i + 50, videoIdsYoutube.size());
-                List<String> videoIdsSize50 = videoIdsYoutube.subList(i, endIndex);
-                allVideoDetail.addAll(youtubeApi.getYoutubeStatusByVideoId(videoIdsSize50));
-                log.info("Part 2 : Processed: {} / {}", endIndex, videoIdsYoutube.size());
-            }
-            log.info("Part 2 : end - {}건의 videoIds로 detail한 정보 취득", allPlaylistItems.size());
-
-            // 1만건의 videoIds 추출
-            // 이미 했네? videoIdsYoutube 가 있네?
-
-            // 1만건의 videoIds로 중복인 DB 데이터를 긁어옴. 500건씩 끊어서 조회함.
-            log.info("Part 3 : start - {}건의 videoIds로 중복값을 DB에서 조회", videoIdsYoutube.size());
-            List<ArchiveEntity> updateArchiveEntities = new ArrayList<>();
+            // 1만건의 videoIds로 중복인 DB 데이터를 긁어옴. 500건씩 끊어서 조회함. Map에 한번에 넣기.
+            // 어쩔수 없이 2만건의 엔티티를 들고있는 유일한 값.
+            log.info("Part 2 : start - {}건의 videoIds로 중복값을 DB에서 조회", videoIdsYoutube.size());
+            Map<String, ArchiveEntity> updateMap = new HashMap<>();
             for (int i = 0; i < videoIdsYoutube.size(); i += 500) {
                 int endIndex = Math.min(i + 500, videoIdsYoutube.size());
                 List<String> videoIdsSize500 = videoIdsYoutube.subList(i, endIndex);
-                updateArchiveEntities.addAll(archiveRepo.findAllByVideoIdIn(videoIdsSize500));
-                log.info("Part 3 : Processed: {} / {}", endIndex, videoIdsYoutube.size());
+                updateMap.putAll(archiveRepo.findAllByVideoIdIn(videoIdsSize500).stream()
+                        .collect(Collectors.toMap(ArchiveEntity::getVideoId, a -> a)));
+                log.info("Part 2 : Processed: {} / {}", endIndex, videoIdsYoutube.size());
             }
-            log.info("Part 3 : end - {}건의 videoIds로 중복값을 DB에서 조회. 총 중복 개수 : {}",
-                    videoIdsYoutube.size(),  updateArchiveEntities.size());
+            log.info("Part 2 : end - {}건의 videoIds로 중복값을 DB에서 조회. 총 중복 개수 : {}",
+                    videoIdsYoutube.size(), updateMap.size());
 
-            // 검색이 쉽도록 위 리스트를 Map으로 바꿀거임.
-            Map<String, ArchiveEntity> updateMap = updateArchiveEntities.stream()
-                    .collect(Collectors.toMap(ArchiveEntity::getVideoId, a -> a));
-
-            // 1만건의 Video 객체를 대상으로 루프.
+            /////////////////// 여기부터 이제 500건씩 끊어서 작업합니다. ///////////////////////////////
             int insertCount = 0;
             int updateCount = 0;
-            List<ArchiveEntity> finalEntities = new ArrayList<>();
-            for (Video video : allVideoDetail) {
-                // Map 에서 videoId로 value를 (DB에서 꺼내온 ArchiveEntity를) 취득
-                ArchiveEntity tempEntity = updateMap.get(video.getId());
 
-                if (tempEntity != null) { // 값이 있음 -> 중복임 -> UPDATE 대상임 -> DB데이터를 가공함.
-                    boolean isChanged = !tempEntity.getTitle().equals(video.getSnippet().getTitle())
-                            || !tempEntity.getThumbnail().equals(getThumbnail(video))
-                            || !tempEntity.getStartAt().equals(getStartAt(video));
-                    if (isChanged) {
-                        tempEntity.setTitle(video.getSnippet().getTitle());
-                        tempEntity.setThumbnail(getThumbnail(video));
-                        tempEntity.setStartAt(getStartAt(video));
-                        updateCount++;
-                        finalEntities.add(tempEntity);
+            for (int i = 0; i < videoIdsYoutube.size(); i += 500) {
+                int currentChunkEnd = Math.min(i + 500, videoIdsYoutube.size());
+
+                // 1. Youtube Data API : 취득한 전체동영상의 videoIds 로 DetailList를 조회
+                List<Video> videoDetail500 = new ArrayList<>();
+                log.info("Part 3 : start - {} ~ {} 구간 detail 정보 취득", i, currentChunkEnd);
+                for (int j = i; j < currentChunkEnd; j += 50) {
+                    int endIndex = Math.min(j + 50, currentChunkEnd);
+                    List<String> videoIdsSize50 = videoIdsYoutube.subList(j, endIndex);
+                    videoDetail500.addAll(youtubeApi.getYoutubeStatusByVideoId(videoIdsSize50));
+                    log.info("Part 3 : Processed: {} / {}", endIndex, videoIdsYoutube.size());
+                }
+                log.info("Part 3 : end - {}건의 videoIds로 detail한 정보 취득", videoDetail500.size());
+
+                // 2. 500건의 Video 객체를 대상으로 루프.
+                List<ArchiveEntity> finalEntities = new ArrayList<>();
+                for (Video video : videoDetail500) {
+                    // 2만건짜리 Map 에서 videoId로 value... 즉 DB에서 꺼내온 ArchiveEntity를 취득
+                    ArchiveEntity tempEntity = updateMap.get(video.getId());
+
+                    if (tempEntity != null) { // 값이 있음 -> 중복임 -> UPDATE 대상임 -> DB데이터를 가공함.
+                        boolean isChanged = !tempEntity.getTitle().equals(video.getSnippet().getTitle())
+                                || !tempEntity.getThumbnail().equals(getThumbnail(video))
+                                || !tempEntity.getStartAt().equals(getStartAt(video));
+                        if (isChanged) {
+                            tempEntity.setTitle(video.getSnippet().getTitle());
+                            tempEntity.setThumbnail(getThumbnail(video));
+                            tempEntity.setStartAt(getStartAt(video));
+                            updateCount++;
+                            finalEntities.add(tempEntity);
+                        }
+                    } else { // 값이 없음 -> 신규임 -> Insert 대상임 -> 신입 Video 객체를 ArchiveEntity 객체로 갈아입혀야함.
+                        finalEntities.add(convertVideoToArchiveEntity(video, channelIdAndMemberMap));
+                        insertCount++;
                     }
-                } else { // 값이 없음 -> 신규임 -> Insert 대상임 -> 신입 Video 객체를 ArchiveEntity 객체로 갈아입혀야함.
-                    finalEntities.add(convertVideoToArchiveEntity(video, channelIdAndMemberMap));
-                    insertCount++;
                 }
-            }
 
-            // 가공이 길었다. 드디어 saveAll을 할 시간임. 근데 얘도 끊어서 돌려야됨. 500건씩 끊어볼까?
-            log.info("Part 4 : {}건의 archive를 upsert 처리 시작", finalEntities.size());
-            if (!finalEntities.isEmpty()) {
-                for (int i = 0; i < finalEntities.size(); i += 500) {
-                    int endIndex = Math.min(i + 500, finalEntities.size());
-                    List<ArchiveEntity> entities500 = finalEntities.subList(i, endIndex);
-                    archiveRepo.saveAll(entities500);
+                // 3. 가공된 500건 이하의 List<ArchiveEntity> finalEntities 를 upsert
+                log.info("Part 4 : start - {}건의 archive를 upsert 처리", finalEntities.size());
+                if (!finalEntities.isEmpty()) {
+                    archiveRepo.saveAll(finalEntities);
                     archiveRepo.flush();
-                    log.info("Part 4 : Processed: {} / {}", endIndex, finalEntities.size());
                 }
-                log.info("Part 4 : {}건의 archive를 upsert 처리 완료", finalEntities.size());
-                log.info("Part 4 : {}건의 행을 INSERT 하였습니다.", insertCount);
-                log.info("Part 4 : {}건의 행을 UPDATE 하였습니다.", updateCount);
+                log.info("Part 4 : end - {}건의 archive를 upsert 처리", finalEntities.size());
             }
+            log.info("Part 4 : {}건의 행을 INSERT 하였습니다.", insertCount);
+            log.info("Part 4 : {}건의 행을 UPDATE 하였습니다.", updateCount);
+            //////////////////////////////////////////////////////////////
             log.info("{} - End insert all archive", currentDateTime.getCurrentDateTime());
             log.info("===================== Log end : insert all archive");
         } catch (Exception e) {
