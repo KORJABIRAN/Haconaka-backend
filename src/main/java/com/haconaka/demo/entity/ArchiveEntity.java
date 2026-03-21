@@ -1,8 +1,9 @@
 package com.haconaka.demo.entity;
 
-import com.haconaka.demo.config.LongListJsonConverter;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -44,7 +45,8 @@ public class ArchiveEntity {
     @Column(name = "collabo_type", nullable = false, length = 32)
     private String collaboType = "NONE";
 
-    @Convert(converter = LongListJsonConverter.class)
+    @JdbcTypeCode(SqlTypes.JSON)
+//    @Convert(converter = LongListJsonConverter.class)
     @Column(name = "collabo_members", columnDefinition = "jsonb")
     private List<Long> collaboMembers;
 }
