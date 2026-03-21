@@ -5,6 +5,7 @@ import com.haconaka.demo.service.youtube.YoutubeContentService;
 import com.haconaka.demo.service.youtube.YoutubeSubscriptionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,11 @@ import org.springframework.stereotype.Service;
 @EnableScheduling
 @Service
 @RequiredArgsConstructor
+@ConditionalOnProperty(
+        value = "app.scheduling.enabled",
+        havingValue = "true",
+        matchIfMissing = false
+)
 public class ScheduledService {
 
     private final YoutubeSubscriptionService youtubeSubscriptionService;
