@@ -1,6 +1,8 @@
 package com.haconaka.demo.service.youtube;
 
-import com.google.api.services.youtube.model.*;
+import com.google.api.services.youtube.model.ThumbnailDetails;
+import com.google.api.services.youtube.model.Video;
+import com.google.api.services.youtube.model.VideoLiveStreamingDetails;
 import com.haconaka.demo.config.CurrentDateTime;
 import com.haconaka.demo.dto.PubSubNotificationDto;
 import com.haconaka.demo.entity.ArchiveEntity;
@@ -35,68 +37,101 @@ public class YoutubeContentService {
 
     private final CurrentDateTime currentDateTime;
 
-    // 이름만 그럴듯한 껍데기! (LiveStream INSERT가 들어있어요)
+    // insertLiveStream - pubsub요청이 올때 도는 메서드
     public void handleNotification(String atomXml) {
-        insertLiveStream(atomXml);
+        // 여기서는 pubSub으로 들어온 요청이 무조건 1개라고 가정합니다.
+        try {
+            PubSubNotificationDto pubSubData = xmlParsingService.parseAtomXml(atomXml).get(0);
+            List<String> videoIds = List.of(pubSubData.getVideoId());
+            // 본게임 시작
+            insertLiveStream(videoIds);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+        }
+    }
+
+    // insertLiveStream - 얘는 이제 스케쥴링 용도 입니다.
+    public void insertLiveStreamWithDB() {
+        // 모든 멤버의 채널ID를 취득합니다.
+        List<String> channelIds = memberRepo.findAll().stream().map(MemberEntity::getYoutubeChannelId).toList();
+        // Youtube Data API : 모든 멤버들의 액티비티 정보를 긁어옵니다. -> videoId만 긁어옵니다. -> 중복제거 위해 셋으로.
+        List<String> activityVideoIds = youtubeApi.getVideoIdsByChannelIdFromActivity(channelIds)
+                .stream().distinct().toList();
+        // 본게임 시작
+        insertLiveStream(activityVideoIds);
     }
 
     // LiveStream INSERT 로직
-    public void insertLiveStream(String atomXml) {
+    private void insertLiveStream(List<String> videoIds) {
         try {
-            // TODO:데이터가1건이 아닌경우에 대해 예외처리를 할 필요가 있음.
-            // 여기서는 pubSub으로 들어온 요청이 무조건 1개라고 가정합니다.
-            PubSubNotificationDto pubSubData = xmlParsingService.parseAtomXml(atomXml).get(0);
-            String channelId = pubSubData.getChannelId();
-            String videoId = pubSubData.getVideoId();
-            String title = pubSubData.getTitle();
+            // videoIds 를 Empty 체크 하지 않았습니다만, 귀찮은것도 맞는데 사실 Empty가 들어올 확률이 0%에 가까움.
             log.info("==================== Log Start : new request from youtube PubSub");
             log.info("{} - A new request!", currentDateTime.getCurrentDateTime());
-            log.info("channelID : {} / videoID : {} / title : {}", channelId, videoId, pubSubData.getTitle());
+            // 준비 - 레코드 하나 파서 channelId, videoId, title, liveStatus 4개 수집
+            List<liveInsertDTO> liveInsertDTOS = youtubeApi.getYoutubeStatusByVideoId(videoIds).stream()
+                    .map(data -> new liveInsertDTO(
+                            data.getSnippet().getChannelId(),
+                            data.getId(),
+                            data.getSnippet().getTitle(),
+                            data.getSnippet().getLiveBroadcastContent()
+                    )).toList();
 
-            List<String> videoIds = new ArrayList<>();
-            videoIds.add(videoId);
+            // 준비 - 인덱싱 용도로 멤버map 만들기 / channelId 와 MemberEntity
+            Map<String, MemberEntity> memberMap = memberRepo.findAll().stream()
+                    .collect(Collectors.toMap(MemberEntity::getYoutubeChannelId, m -> m));
 
-            // 예외처리1. 채널ID, 비디오ID 둘 중 하나라도 없으면? 즉시 종료.
-            if (channelId == null || videoId == null) {
-                log.warn("Data Integrity Error : channelId or videoId is not found. finish process now.");
-                return;
+            // 준비 - 인덱싱 용도로 라이브ids 만들기 / liveVideoIds
+            Set<String> liveVideoIds = livestreamRepo.findAll().stream()
+                    .map(LiveStreamEntity::getVideoId).collect(Collectors.toSet());
+
+            // 본격적인 예외처리의 시작. 살아남은 놈만 새로운 객체로 들어갈수 있다.
+            List<LiveStreamEntity> result = new ArrayList<>();
+            int insertCount = 0;
+            for (liveInsertDTO data : liveInsertDTOS) {
+                log.info("status : {} / channelID : {} / videoID : {} / title : {}",
+                        data.liveStatus, data.channelId, data.videoId, data.title);
+                // 예외처리1. videoId로 api검색해서 상태가 live가 아니면? 즉시 종료.
+                if (!"live".equals(data.liveStatus)) {
+                    log.info("status is not live. finish process now.");
+                    continue;
+                }
+
+                // 예외처리2. 채널ID, 비디오ID 둘 중 하나라도 없으면? 즉시 종료.
+                if (data.channelId == null || data.videoId == null) {
+                    log.warn("Data Integrity Error : channelId or videoId is not found. finish process now.");
+                    continue;
+                }
+
+                // 예외처리3. liveStream 테이블을 videoID로 찾아보니 이미 정보가 있어? 즉시 종료.
+                // 값이 0임 -> isEmpty는 참임 -> 뒤집으니까 최종 false임
+                // 값이 1임 -> isEmpty는 거짓임 -> 뒤집으니까 최종 true임 -> 이때가 중복인 거니까 종료해야함
+                if (liveVideoIds.contains(data.videoId)) {
+                    log.warn("Data Integrity Error : Failed to save LiveStream : Data already present.");
+                    continue;
+                }
+
+                // 예외처리4. 채널id로 memberMap 인덱싱 -> memberId 체크 -> 멤버PK 못찾았어? 즉시 종료.
+                MemberEntity member = memberMap.get(data.channelId);
+                if (member == null) {
+                    log.warn("Data Integrity Error : memberPK is not found. return 0 and finish process now.");
+                    continue;
+                }
+
+                // 4가지 예외처리를 모두 살아남은 강한자가 새로운 객체에 들어갈것이다.
+                result.add(LiveStreamEntity.builder()
+                        .title(data.title)
+                        .videoId(data.videoId)
+                        .member(member)
+                        .build());
+                insertCount++;
             }
 
-            // 예외처리2. videoId로 api검색해서 상태가 live가 아니면? 즉시 종료.
-            // 여기서는 List값이 무조건 1개 라고 가정합니다.
-            // TODO:데이터가1건이 아닌경우에 대해 예외처리를 할 필요가 있음.
-            String status = youtubeApi.getYoutubeStatusByVideoId(videoIds).stream()
-                    .map(Video::getSnippet)
-                    .map(VideoSnippet::getLiveBroadcastContent)
-                    .toList().get(0);
-            if (!"live".equals(status)) {
-                log.info("status is not live. finish process now.");
-                return;
-            }
+            // 진짜 다됐음. 이제 insert 하자
+            if (!result.isEmpty()) livestreamRepo.saveAll(result);
 
-            // 예외처리3. liveStream 테이블을 videoID로 찾아보니 이미 정보가 있어? 즉시 종료.
-            if (livestreamRepo.findByVideoId(videoId) != null) {
-                log.warn("Data Integrity Error : Failed to save LiveStream : Data already present.");
-                return;
-            }
-
-            // 채널id로 address 테이블 get해서 memberId 취득
-            MemberEntity member = Optional.ofNullable(memberRepo.findByYoutubeChannelId(channelId)).orElseGet(() -> {
-                log.warn("Data Integrity Error : memberPK is not found. return 0 and finish process now.");
-                return new MemberEntity();
-            });
-            if (member.getId() == 0) return; // 예외처리4. 멤버PK 못찾았어? 즉시 종료.
-
-            // 이제 memberPk를 취득했으니 videoId랑 같이 Livestream 테이블에 저장
-            livestreamRepo.save(LiveStreamEntity.builder()
-                    .member(member)
-                    .videoId(videoId)
-                    .title(title)
-                    .build());
-            log.info("{} - succeed save.", currentDateTime.getCurrentDateTime());
+            log.info("{} - 총 {}건 입력하였습니다", currentDateTime.getCurrentDateTime(), insertCount);
         } catch (Exception e) {
-            log.error("Exception : Failed to handle notification");
-            e.getStackTrace();
+            log.error("치명적인 오류 : YoutubeContentService 클래스의 insertLiveStream 에서 catch 호출됨", e);
         } finally {
             log.info("==================== Log End : new request from youtube PubSub");
         }
@@ -259,6 +294,8 @@ public class YoutubeContentService {
         }
     }
 
+    // 유틸리티
+
     // insertArchive의 부품 1번쨰.
     private ArchiveEntity convertVideoToArchiveEntity(Video video, Map<String, MemberEntity> channelIdAndMemberMap) {
         return ArchiveEntity.builder()
@@ -295,4 +332,7 @@ public class YoutubeContentService {
                 .orElseGet(() -> OffsetDateTime.parse(video.getSnippet().getPublishedAt().toStringRfc3339()));
         // ActualStartTime이 존재하면 그 값을, null이면 PublishedAt을 리턴합니다.
     }
+
+    // 레코드 : insertLiveStream
+    private record liveInsertDTO(String channelId, String videoId, String title, String liveStatus) {}
 }

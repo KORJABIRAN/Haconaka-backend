@@ -27,14 +27,16 @@ public class YoutubeApiService {
             // videoIds가 empty이면 400에러가 터져요. 조건문으로 검사 필수.
             if (videoIds.isEmpty()) return List.of();
             // YOUTUBE API 호출 과정
-            YouTube.Videos.List req = youtube.videos().list(List.of("snippet", "status", "liveStreamingDetails"));
-            req.setId(videoIds);
-            req.setKey(youtubeApiKey);
-            VideoListResponse resp = req.execute();
-            return resp.getItems();
+            List<Video> videoList = new ArrayList<>();
+            for ( int i = 0; i < videoIds.size(); i += 50 ) {
+                YouTube.Videos.List req = youtube.videos().list(List.of("snippet", "status", "liveStreamingDetails"));
+                req.setId(videoIds.subList(i, Math.min(i + 50, videoIds.size())));
+                req.setKey(youtubeApiKey);
+                videoList.addAll(req.execute().getItems());
+            }
+            return videoList;
         } catch (IOException e) {
-            log.warn("뭔가 예상치 못한 Exception 입니다 : YoutubeApiService 클래스 getYoutubeStatusByVideoId 에서 catch가 호출됨. ");
-            e.printStackTrace();
+            log.warn("뭔가 예상치 못한 Exception 입니다 : YoutubeApiService 클래스 getYoutubeStatusByVideoId 에서 catch가 호출됨.", e);
             return List.of();
         }
     }
@@ -77,8 +79,7 @@ public class YoutubeApiService {
             } catch (IOException e) {
                 log.error("Network or General error for playlistId: {}", playlistId, e);
             } catch (Exception e) {
-                log.warn("뭔가 예상치 못한 Exception 입니다 : YoutubeApiService 클래스 getYoutubeVideosInPlaylist 에서 catch가 호출됨. ");
-                e.printStackTrace();
+                log.warn("뭔가 예상치 못한 Exception 입니다 : YoutubeApiService 클래스 getYoutubeVideosInPlaylist 에서 catch가 호출됨.", e);
             }
         }
         return allItems;
@@ -128,10 +129,35 @@ public class YoutubeApiService {
             } catch (IOException e) {
                 log.error("Network or General error for playlistId: {}", playlistId, e);
             } catch (Exception e) {
-                log.warn("뭔가 예상치 못한 Exception 입니다 : YoutubeApiService 클래스 getYoutubeVideoIdsInPlaylist 에서 catch가 호출됨. ");
-                e.printStackTrace();
+                log.warn("뭔가 예상치 못한 Exception 입니다 : YoutubeApiService 클래스 getYoutubeVideoIdsInPlaylist 에서 catch가 호출됨.", e);
             }
         }
         return allVideoIds;
+    }
+
+    // Youtube Data API : channelId로 채널 내 전체 액티비티 정보 취득 -> videoId만 리스트로 저장 후 리턴.
+    public List<String> getVideoIdsByChannelIdFromActivity(List<String> channelIds) {
+        try {
+            // channelIds가 empty이면 400에러가 터져요..? 조건문으로 검사 필수.
+            if (channelIds.isEmpty()) return List.of();
+            // YOUTUBE API 호출 과정
+            List<String> activityVideoIds = new ArrayList<>();
+            for (String channelId : channelIds) {
+                YouTube.Activities.List req = youtube.activities().list(List.of("contentDetails"));
+                req.setChannelId(channelId);
+                req.setMaxResults(50L);
+                req.setKey(youtubeApiKey);
+                ActivityListResponse resp = req.execute();
+                activityVideoIds.addAll(resp.getItems().stream()
+                        .map(Activity::getContentDetails).filter(Objects::nonNull)
+                        .map(ActivityContentDetails::getUpload).filter(Objects::nonNull)
+                        .map(ActivityContentDetailsUpload::getVideoId).filter(Objects::nonNull)
+                        .toList());
+            }
+            return activityVideoIds;
+        } catch (IOException e) {
+            log.warn("뭔가 예상치 못한 Exception 입니다 : YoutubeApiService 클래스 getActivityByChannelId 에서 catch가 호출됨.", e);
+            return List.of();
+        }
     }
 }

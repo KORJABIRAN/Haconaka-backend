@@ -25,16 +25,11 @@ public class ScheduledService {
     private final RestartConfig restartConfig;
     private final YoutubeContentService youtubeContentService;
 
-    // 3분 단위 체크로 10분 재서 스케쥴링 멈추기
-    @Scheduled(cron = "5 0/3 * * * *", zone = "Asia/Seoul")
-    public void deleteLiveStreamsWithTimer() {
-        restartConfig.deleteLiveStreamWithTenMinutesTimer();
-    }
-
-    // 서버 시작 30초 후 구독갱신 로직
-    @Scheduled(initialDelay = 30 * 1000)
+    // 서버 시작 10분 후 - Pubsub 구독갱신 + 라이브스트림 재갱신
+    @Scheduled(initialDelay = 10 * 60 * 1000)
     public void renewAllSubscriptionsOnInit() {
         youtubeSubscriptionService.subscribeAllYtChannels();
+        youtubeContentService.insertLiveStreamWithDB();
     }
 
     // 매일 00시 05분 마다 (1일 1회) 구독갱신
@@ -43,10 +38,16 @@ public class ScheduledService {
         youtubeSubscriptionService.subscribeAllYtChannels();
     }
 
-    // 매일 오전 00시 15분에 각 채널 상위 50건을 조회하여 아카이브 갱신
-    @Scheduled(cron = "0 15 0 * * *", zone = "Asia/Seoul")
+    // 2시간 마다 아카이브 갱신 -> 01시, 03시, 05시 ..... 21시, 23시
+    @Scheduled(cron = "0 0 1/2 * * *", zone = "Asia/Seoul")
     public void insertArchiveDaily() {
         // true : AllArchive / false : 각 채널마다 50건 / 기본적으로 false입니다.
         youtubeContentService.insertArchive(false);
+    }
+
+    // 3분 단위 체크로 10분 재서 스케쥴링 멈추기
+    @Scheduled(cron = "5 0/3 * * * *", zone = "Asia/Seoul")
+    public void deleteLiveStreamsWithTimer() {
+        restartConfig.deleteLiveStreamWithTenMinutesTimer();
     }
 }
